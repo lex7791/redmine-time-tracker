@@ -323,7 +323,6 @@ function formatTime(time) {
   return result || '0ч';
 }
 
-
 addTimeBtn.addEventListener('click', async () => {
   const taskKey = taskNumberInput.value.trim();
   const taskDate = taskDateInput.value.trim();
