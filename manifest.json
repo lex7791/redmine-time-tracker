@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Redmine Time Tracker",
-  "author": "7791-soft@mail.ru",
+  "author": "bisvotti@gmail.com",
   "version": "1.0",
   "description": "Отслеживание учтённого времени в Redmine",
   "action": {
@@ -12,8 +12,8 @@
   ],
   "host_permissions": ["<all_urls>"],
   "icons": {
-    "16": "track.png",
-    "48": "track.png",
-    "128": "track.png"
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon.png"
   }
 }
