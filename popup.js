@@ -33,13 +33,12 @@ function initApp() {
 }
 
 chrome.storage.sync.get(['apiKey', 'redmineUrl'], (data) => {
+  apiKeyInput.value = data.apiKey || '';
+  redmineUrlInput.value = data.redmineUrl || '';
+
   if (data.apiKey && data.redmineUrl) {
-    apiKeyInput.value = data.apiKey;
-    redmineUrlInput.value = data.redmineUrl;
     initApp();
   } else {
-    apiKeyInput.value = data.apiKey;
-    redmineUrlInput.value = data.redmineUrl;
     alert('Укажите свой API-ключ и URL Redmine');
   }
 });
@@ -152,7 +151,8 @@ function hideLoader() {
 }
 
 // Отображение записей в таблице
-function displayTimeEntries(entries, issuesData, weekDates) {
+async function displayTimeEntries(entries, issuesData, weekDates) {
+  const { redmineUrl } = await getApiKey();
   // Группируем записи по дням недели
   const daysData = weekDates.map(date => {
     const dateStr = date.toISOString().split('T')[0];

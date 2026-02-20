@@ -89,7 +89,7 @@ button.danger:hover {
 
 .time-grid {
     overflow: auto;
-    height: 430px;
+    height: 420px;
 
     display: flex;
     flex-direction: column;
