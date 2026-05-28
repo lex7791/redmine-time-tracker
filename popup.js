@@ -21,6 +21,7 @@ const taskActivityInput = document.getElementById('taskActivity');
 
 timeEntries = {};
 issuesData = {};
+let editingTimeEntryId = null;
 
 // текущая отображаемая неделя
 const today = new Date();
@@ -203,6 +204,9 @@ async function displayTimeEntries(entries, issuesData, weekDates) {
                 <div class="entry-btn delete-btn hint" data-tooltip="Удалить запись" data-id="${entry?.id}">
                     <svg><use href="#delete-icon"></use></svg>
                 </div>
+                <div class="entry-btn edit-btn hint" data-tooltip="Редактировать запись" data-id="${entry?.id}">
+                    <svg><use href="#edit-icon"></use></svg>
+                </div>
                 <div class="entry-btn copy-btn hint" data-tooltip="Скопировать в быструю запись времени" data-id="${entry?.id}">
                     <svg><use href="#copy-icon"></use></svg>
                 </div>
@@ -245,27 +249,51 @@ nextWeekBtn.addEventListener('click', () => {
 });
 
 timeGridElement.addEventListener('click', async (event) => {
-  const parent = event.target.parentElement;
+  const button = event.target.closest('.entry-btn');
 
-  if (event.target.classList.contains('copy-btn') || parent.classList.contains('copy-btn')) {
-    const entryId = parent.dataset.id;
+  if (!button) {
+    return;
+  }
+
+  if (button.classList.contains('copy-btn')) {
+    const entryId = button.dataset.id;
     const entry = timeEntries?.[entryId];
     const issue = issuesData?.[entry.issue.id];
     copy(issue.id, convertDateToISODate(today), issue.key, entry.hours, entry.comments, entry.activity.id);
     event.stopPropagation();
   }
 
-    if (event.target.classList.contains('delete-btn') || parent.classList.contains('delete-btn')) {
-      showLoader();
-      const entryId = parent.dataset.id;
-      await deleteTime(entryId);
-      await fetchTimeEntries(); // обновляем таблицу
-      hideLoader();
-      event.stopPropagation();
-    }
+  if (button.classList.contains('edit-btn')) {
+    const entryId = button.dataset.id;
+    const entry = timeEntries?.[entryId];
+    const issue = issuesData?.[entry.issue.id];
+    edit(entry.id, issue.id, entry.spent_on, issue.key, entry.hours, entry.comments, entry.activity.id);
+    event.stopPropagation();
+  }
+
+  if (button.classList.contains('delete-btn')) {
+    showLoader();
+    const entryId = button.dataset.id;
+    await deleteTime(entryId);
+    await fetchTimeEntries(); // обновляем таблицу
+    hideLoader();
+    event.stopPropagation();
+  }
 })
 
 function copy(id, date, key, hours, comment, activityCode) {
+  editingTimeEntryId = null;
+  addTimeBtn.textContent = 'Добавить';
+  fillFastInputs(id, date, key, hours, comment, activityCode);
+}
+
+function edit(entryId, id, date, key, hours, comment, activityCode) {
+  editingTimeEntryId = entryId;
+  addTimeBtn.textContent = 'Изменить';
+  fillFastInputs(id, date, key, hours, comment, activityCode);
+}
+
+function fillFastInputs(id, date, key, hours, comment, activityCode) {
   taskIdInput.value = id;
   taskDateInput.value = date;
   taskNumberInput.value = key;
@@ -281,6 +309,8 @@ function clearFastInputs() {
   taskTimeInput.value = '';
   taskCommentInput.value = '';
   taskActivityInput.value = '';
+  editingTimeEntryId = null;
+  addTimeBtn.textContent = 'Добавить';
 }
 
 function formatTime(time) {
@@ -348,7 +378,12 @@ addTimeBtn.addEventListener('click', async () => {
         comments: taskComment
       }
 
-      await addTime(entry); // добавляем время
+      if (editingTimeEntryId) {
+        await updateTime(editingTimeEntryId, entry); // обновляем время
+      } else {
+        await addTime(entry); // добавляем время
+      }
+
       await fetchTimeEntries(); // обновляем таблицу
       clearFastInputs(); // чистим поля быстрого ввода
 
@@ -415,6 +450,13 @@ async function addTime(entry) {
   const params = { time_entry: entry };
   const url = `time_entries.json`;
   return request(url, params, 'POST');
+}
+
+// редактирование времени
+async function updateTime(entryId, entry) {
+  const params = { time_entry: entry };
+  const url = `/time_entries/${entryId}.json`;
+  return request(url, params, 'PUT');
 }
 
 // удаление времени
