@@ -22,12 +22,28 @@ const taskActivityInput = document.getElementById('taskActivity');
 timeEntries = {};
 issuesData = {};
 let editingTimeEntryId = null;
+const locale = chrome.i18n.getUILanguage().startsWith('ru') ? 'ru-RU' : 'en-US';
+
+function t(key, substitutions) {
+  return chrome.i18n.getMessage(key, substitutions) || key;
+}
+
+function localizeStaticHtml() {
+  document.querySelectorAll('[data-i18n]').forEach(element => {
+    element.textContent = t(element.dataset.i18n);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+    element.placeholder = t(element.dataset.i18nPlaceholder);
+  });
+}
 
 // текущая отображаемая неделя
 const today = new Date();
 let currentWeekStart = getMonday(new Date());
 
 function initApp() {
+  localizeStaticHtml();
   setActivities();
   fetchTimeEntries();
   clearFastInputs();
@@ -40,7 +56,8 @@ chrome.storage.sync.get(['apiKey', 'redmineUrl'], (data) => {
   if (data.apiKey && data.redmineUrl) {
     initApp();
   } else {
-    alert('Укажите свой API-ключ и URL Redmine');
+    localizeStaticHtml();
+    alert(t('missingSettingsAlert'));
   }
 });
 
@@ -48,17 +65,18 @@ function setApiKey() {
   const apiKey = apiKeyInput.value.trim();
   const redmineUrl = redmineUrlInput.value.trim();
 
-  chrome.storage.sync.set({ apiKey, redmineUrl });
-
   if (!redmineUrl) {
-    alert('Заполните URL Redmine. Перейдите на любую страницу вашего Redmine и скопируйте домен. Например, для страницы https://project.site.ru/issues/1234 это будет https://project.site.ru');
-    return;
+    alert(t('missingRedmineUrlAlert'));
+    return false;
   }
 
   if (!apiKey) {
-    alert('Укажите свой API-ключ, его можно найти в исходном коде любой страницы Redmine через поиск по "ApiKey"');
-    return;
+    alert(t('missingApiKeyAlert'));
+    return false;
   }
+
+  chrome.storage.sync.set({ apiKey, redmineUrl });
+  return true;
 }
 
 async function getApiKey() {
@@ -68,9 +86,12 @@ async function getApiKey() {
 
 // Сохраняем настройки
 saveSettingsBtn.addEventListener('click', () => {
-  setApiKey();
+  if (!setApiKey()) {
+    return;
+  }
+
   initApp();
-  alert('Настройки сохранены!');
+  alert(t('settingsSavedAlert'));
 });
 
 // Запрос к Redmine API
@@ -103,7 +124,7 @@ async function fetchTimeEntries() {
     // выводим в таблицу
     displayTimeEntries(time_entries, issuesData, weekDates);
   } catch (error) {
-    timeGridElement.innerHTML = `<p class="error">Ошибка: ${error.message}</p>`;
+    timeGridElement.innerHTML = `<p class="error">${t('errorPrefix')}: ${error.message}</p>`;
     hideLoader();
   }
 }
@@ -130,13 +151,13 @@ function getWeekDates(startDate) {
 // Форматирование даты
 function formatDate(date) {
   const options = { day: 'numeric', month: 'short' };
-  return date.toLocaleDateString('ru-RU', options);
+  return date.toLocaleDateString(locale, options);
 }
 
 // Форматирование дня недели
 function getWeekDayName(date) {
   const options = { weekday: 'short' };
-  return date.toLocaleDateString('ru-RU', options);
+  return date.toLocaleDateString(locale, options);
 }
 
 function convertDateToISODate(date) {
@@ -201,20 +222,20 @@ async function displayTimeEntries(entries, issuesData, weekDates) {
               </div>
               <div class="entry-bottom">
                 <span class="entry-hour _success">${formatTime(entry.hours)}</span>
-                <div class="entry-btn delete-btn hint" data-tooltip="Удалить запись" data-id="${entry?.id}">
+                <div class="entry-btn delete-btn hint" data-tooltip="${t('deleteEntryTooltip')}" data-id="${entry?.id}">
                     <svg><use href="#delete-icon"></use></svg>
                 </div>
-                <div class="entry-btn edit-btn hint" data-tooltip="Редактировать запись" data-id="${entry?.id}">
+                <div class="entry-btn edit-btn hint" data-tooltip="${t('editEntryTooltip')}" data-id="${entry?.id}">
                     <svg><use href="#edit-icon"></use></svg>
                 </div>
-                <div class="entry-btn copy-btn hint" data-tooltip="Скопировать в быструю запись времени" data-id="${entry?.id}">
+                <div class="entry-btn copy-btn hint" data-tooltip="${t('copyEntryTooltip')}" data-id="${entry?.id}">
                     <svg><use href="#copy-icon"></use></svg>
                 </div>
               </div>
             </div>
           `
   }).join('')}
-          ${day.entries.length === 0 ? '<div class="no-entries">Нет записей</div>' : ''}
+          ${day.entries.length === 0 ? `<div class="no-entries">${t('noEntries')}</div>` : ''}
         </div>
       `).join('')}
     </div>
@@ -227,7 +248,7 @@ async function setActivities() {
   const { time_entry_activities } = await getActivities();
 
   // Заполняем select деятельностями
-  taskActivityInput.innerHTML = '<option value="">...</option>';
+  taskActivityInput.innerHTML = `<option value="">${t('emptyActivityOption')}</option>`;
 
   time_entry_activities.forEach(activity => {
     const option = document.createElement('option');
@@ -283,13 +304,13 @@ timeGridElement.addEventListener('click', async (event) => {
 
 function copy(id, date, key, hours, comment, activityCode) {
   editingTimeEntryId = null;
-  addTimeBtn.textContent = 'Добавить';
+  addTimeBtn.textContent = t('addTime');
   fillFastInputs(id, date, key, hours, comment, activityCode);
 }
 
 function edit(entryId, id, date, key, hours, comment, activityCode) {
   editingTimeEntryId = entryId;
-  addTimeBtn.textContent = 'Изменить';
+  addTimeBtn.textContent = t('editTime');
   fillFastInputs(id, date, key, hours, comment, activityCode);
 }
 
@@ -310,7 +331,7 @@ function clearFastInputs() {
   taskCommentInput.value = '';
   taskActivityInput.value = '';
   editingTimeEntryId = null;
-  addTimeBtn.textContent = 'Добавить';
+  addTimeBtn.textContent = t('addTime');
 }
 
 function formatTime(time) {
@@ -343,14 +364,14 @@ function formatTime(time) {
 
   let result = '';
   if (hours > 0) {
-    result += hours + 'ч';
+    result += t('hoursShort', [hours.toString()]);
   }
   if (minutes > 0) {
     if (result) result += ' ';
-    result += minutes + 'м';
+    result += t('minutesShort', [minutes.toString()]);
   }
 
-  return result || '0ч';
+  return result || t('zeroHours');
 }
 
 addTimeBtn.addEventListener('click', async () => {
@@ -408,7 +429,7 @@ async function request(urlPath, params, method = 'GET') {
       method: method,
     });
 
-    if (!response.ok) throw new Error('Ошибка API');
+    if (!response.ok) throw new Error(t('apiError'));
 
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json') && response.headers.get('content-length') !== '0') {
@@ -417,7 +438,7 @@ async function request(urlPath, params, method = 'GET') {
       return null;
     }
   } catch (e) {
-    timeGridElement.innerHTML = `<p class="error">Ошибка: ${error.message}</p>`;
+    timeGridElement.innerHTML = `<p class="error">${t('errorPrefix')}: ${e.message}</p>`;
   }
 }
 

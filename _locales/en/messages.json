@@ -1,0 +1,83 @@
+{
+  "extensionName": {
+    "message": "Redmine Time Tracker"
+  },
+  "extensionDescription": {
+    "message": "Track logged time in Redmine"
+  },
+  "redmineUrlPlaceholder": {
+    "message": "Redmine URL https://project.site.com"
+  },
+  "apiKeyPlaceholder": {
+    "message": "Enter Redmine API key"
+  },
+  "saveSettings": {
+    "message": "Save"
+  },
+  "prevWeek": {
+    "message": "Back"
+  },
+  "nextWeek": {
+    "message": "Next"
+  },
+  "quickEntryCaption": {
+    "message": "Quick time entry. You can also copy parameters from another task with the button"
+  },
+  "taskNumberPlaceholder": {
+    "message": "Task number"
+  },
+  "taskTimePlaceholder": {
+    "message": "Hours"
+  },
+  "taskCommentPlaceholder": {
+    "message": "Comment"
+  },
+  "addTime": {
+    "message": "Add"
+  },
+  "editTime": {
+    "message": "Update"
+  },
+  "missingSettingsAlert": {
+    "message": "Enter your Redmine API key and URL"
+  },
+  "missingRedmineUrlAlert": {
+    "message": "Fill in the Redmine URL. Open any page in your Redmine and copy the domain. For example, for https://project.site.com/issues/1234 use https://project.site.com"
+  },
+  "missingApiKeyAlert": {
+    "message": "Enter your API key. You can find it in the source code of any Redmine page by searching for \"ApiKey\""
+  },
+  "settingsSavedAlert": {
+    "message": "Settings saved!"
+  },
+  "errorPrefix": {
+    "message": "Error"
+  },
+  "apiError": {
+    "message": "API error"
+  },
+  "deleteEntryTooltip": {
+    "message": "Delete entry"
+  },
+  "editEntryTooltip": {
+    "message": "Edit entry"
+  },
+  "copyEntryTooltip": {
+    "message": "Copy to quick time entry"
+  },
+  "noEntries": {
+    "message": "No entries"
+  },
+  "emptyActivityOption": {
+    "message": "..."
+  },
+  "hoursShort": {
+    "message": "$1h"
+  },
+  "minutesShort": {
+    "message": "$1m"
+  },
+  "zeroHours": {
+    "message": "0h"
+  }
+}

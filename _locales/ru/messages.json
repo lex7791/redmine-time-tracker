@@ -1,0 +1,83 @@
+{
+  "extensionName": {
+    "message": "Redmine Time Tracker"
+  },
+  "extensionDescription": {
+    "message": "Отслеживание учтённого времени в Redmine"
+  },
+  "redmineUrlPlaceholder": {
+    "message": "URL Redmine https://project.site.ru"
+  },
+  "apiKeyPlaceholder": {
+    "message": "Введите API-ключ Redmine"
+  },
+  "saveSettings": {
+    "message": "Сохранить"
+  },
+  "prevWeek": {
+    "message": "Назад"
+  },
+  "nextWeek": {
+    "message": "Вперед"
+  },
+  "quickEntryCaption": {
+    "message": "Быстрая запись времени. Также вы можете скопировать параметры из другой задачи с помощью кнопки"
+  },
+  "taskNumberPlaceholder": {
+    "message": "Номер задачи"
+  },
+  "taskTimePlaceholder": {
+    "message": "Часы"
+  },
+  "taskCommentPlaceholder": {
+    "message": "Комментарий"
+  },
+  "addTime": {
+    "message": "Добавить"
+  },
+  "editTime": {
+    "message": "Изменить"
+  },
+  "missingSettingsAlert": {
+    "message": "Укажите свой API-ключ и URL Redmine"
+  },
+  "missingRedmineUrlAlert": {
+    "message": "Заполните URL Redmine. Перейдите на любую страницу вашего Redmine и скопируйте домен. Например, для страницы https://project.site.ru/issues/1234 это будет https://project.site.ru"
+  },
+  "missingApiKeyAlert": {
+    "message": "Укажите свой API-ключ, его можно найти в исходном коде любой страницы Redmine через поиск по \"ApiKey\""
+  },
+  "settingsSavedAlert": {
+    "message": "Настройки сохранены!"
+  },
+  "errorPrefix": {
+    "message": "Ошибка"
+  },
+  "apiError": {
+    "message": "Ошибка API"
+  },
+  "deleteEntryTooltip": {
+    "message": "Удалить запись"
+  },
+  "editEntryTooltip": {
+    "message": "Редактировать запись"
+  },
+  "copyEntryTooltip": {
+    "message": "Скопировать в быструю запись времени"
+  },
+  "noEntries": {
+    "message": "Нет записей"
+  },
+  "emptyActivityOption": {
+    "message": "..."
+  },
+  "hoursShort": {
+    "message": "$1ч"
+  },
+  "minutesShort": {
+    "message": "$1м"
+  },
+  "zeroHours": {
+    "message": "0ч"
+  }
+}

@@ -8,25 +8,25 @@
 <body>
 <div class="container">
   <div class="settings">
-    <input type="url" id="redmineUrl" placeholder="URL Redmine https://project.site.ru" required>
-    <input type="text" id="apiKey" placeholder="Введите API-ключ Redmine">
-    <button id="saveSettings">Сохранить</button>
+    <input type="url" id="redmineUrl" data-i18n-placeholder="redmineUrlPlaceholder" placeholder="URL Redmine https://project.site.ru" required>
+    <input type="text" id="apiKey" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Введите API-ключ Redmine">
+    <button id="saveSettings" data-i18n="saveSettings">Сохранить</button>
 
     <div class="week-info">
-      <button id="prevWeek" class="danger">← Назад</button>
-      <button id="nextWeek" class="danger">Вперед →</button>
+      <button id="prevWeek" class="danger"><span aria-hidden="true">←</span> <span data-i18n="prevWeek">Назад</span></button>
+      <button id="nextWeek" class="danger"><span data-i18n="nextWeek">Вперед</span> <span aria-hidden="true">→</span></button>
     </div>
   </div>
   <div class="control">
-    <label class="caption" for="taskNumber">Быстрая запись времени. Также вы можете скопировать параметры из другой задачи с помощью кнопки <svg><use href="#copy-icon"></use></svg></label>
+    <label class="caption" for="taskNumber"><span data-i18n="quickEntryCaption">Быстрая запись времени. Также вы можете скопировать параметры из другой задачи с помощью кнопки</span> <svg><use href="#copy-icon"></use></svg></label>
     <div class="fast-creation">
       <input type="hidden" id="taskId">
       <input type="date" id="taskDate" />
-      <input type="text" id="taskNumber" placeholder="Номер задачи" />
-      <input type="text" id="taskTime" placeholder="Часы" />
+      <input type="text" id="taskNumber" data-i18n-placeholder="taskNumberPlaceholder" placeholder="Номер задачи" />
+      <input type="text" id="taskTime" data-i18n-placeholder="taskTimePlaceholder" placeholder="Часы" />
       <select id="taskActivity"></select>
-      <input type="text" id="taskComment" placeholder="Комментарий" />
-      <button class="secondary" id="addTime">Добавить</button>
+      <input type="text" id="taskComment" data-i18n-placeholder="taskCommentPlaceholder" placeholder="Комментарий" />
+      <button class="secondary" id="addTime" data-i18n="addTime">Добавить</button>
     </div>
   </div>
 
