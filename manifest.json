@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
   "author": "bisvotti@gmail.com",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "__MSG_extensionDescription__",
   "default_locale": "ru",
   "action": {
