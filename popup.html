@@ -3,49 +3,9 @@
 <head>
   <title>Redmine Time Tracker</title>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
-  <div class="settings">
-    <input type="url" id="redmineUrl" data-i18n-placeholder="redmineUrlPlaceholder" placeholder="URL Redmine https://project.site.ru" required>
-    <input type="text" id="apiKey" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Введите API-ключ Redmine">
-    <button id="saveSettings" data-i18n="saveSettings">Сохранить</button>
-
-    <div class="week-info">
-      <button id="prevWeek" class="danger"><span aria-hidden="true">←</span> <span data-i18n="prevWeek">Назад</span></button>
-      <button id="nextWeek" class="danger"><span data-i18n="nextWeek">Вперед</span> <span aria-hidden="true">→</span></button>
-    </div>
-  </div>
-  <div class="control">
-    <label class="caption" for="taskNumber"><span data-i18n="quickEntryCaption">Быстрая запись времени. Также вы можете скопировать параметры из другой задачи с помощью кнопки</span> <svg><use href="#copy-icon"></use></svg></label>
-    <div class="fast-creation">
-      <input type="hidden" id="taskId">
-      <input type="date" id="taskDate" />
-      <input type="text" id="taskNumber" data-i18n-placeholder="taskNumberPlaceholder" placeholder="Номер задачи" />
-      <input type="text" id="taskTime" data-i18n-placeholder="taskTimePlaceholder" placeholder="Часы" />
-      <select id="taskActivity"></select>
-      <input type="text" id="taskComment" data-i18n-placeholder="taskCommentPlaceholder" placeholder="Комментарий" />
-      <button class="secondary" id="addTime" data-i18n="addTime">Добавить</button>
-    </div>
-  </div>
-
-  <div class="time-grid" id="timeGrid">
-    <!-- Сюда загружаются данные -->
-  </div>
-</div>
-<svg style="display: none;">
-  <symbol id="copy-icon" viewBox="0 0 24 24">
-    <path d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"/>
-  </symbol>
-  <symbol id="delete-icon" viewBox="0 0 24 24">
-    <path d="M 10 2 L 9 3 L 4 3 L 4 5 L 5 5 L 5 20 C 5 20.522222 5.1913289 21.05461 5.5683594 21.431641 C 5.9453899 21.808671 6.4777778 22 7 22 L 17 22 C 17.522222 22 18.05461 21.808671 18.431641 21.431641 C 18.808671 21.05461 19 20.522222 19 20 L 19 5 L 20 5 L 20 3 L 15 3 L 14 2 L 10 2 z M 7 5 L 17 5 L 17 20 L 7 20 L 7 5 z M 9 7 L 9 18 L 11 18 L 11 7 L 9 7 z M 13 7 L 13 18 L 15 18 L 15 7 L 13 7 z"></path>
-  </symbol>
-  <symbol id="edit-icon" viewBox="0 0 24 24">
-    <path d="M 18.414 2 C 17.902 2 17.391 2.195 17 2.586 L 4 15.586 L 4 20 L 8.414 20 L 21.414 7 C 22.195 6.219 22.195 4.953 21.414 4.172 L 19.828 2.586 C 19.438 2.195 18.926 2 18.414 2 z M 18.414 4 L 20 5.586 L 18.586 7 L 17 5.414 L 18.414 4 z M 15.586 6.828 L 17.172 8.414 L 7.586 18 L 6 18 L 6 16.414 L 15.586 6.828 z"></path>
-  </symbol>
-</svg>
-<div id="loading"></div>
-<script src="popup.js"></script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

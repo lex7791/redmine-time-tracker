@@ -343,3 +343,11 @@ button.danger:hover {
     width: 14px;
     height: 14px;
 }
+
+.entry-btn {
+    padding: 0;
+    color: inherit;
+}
+.entry-btn:hover {
+    background: none;
+}
