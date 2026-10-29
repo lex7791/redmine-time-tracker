@@ -138,11 +138,11 @@ test('окно настроек сохраняет прежние ключи и 
       } },
     };
     settingsWindow.eval(settingsScript);
-    await waitFor(() => settingsWindow.document.querySelector('button:not([disabled])'));
+    await waitFor(() => settingsWindow.document.querySelector('.save-button:not([disabled])'));
     const fields = settingsWindow.document.querySelectorAll('input');
     setValue(settingsWindow, fields[0], 'https://redmine.test');
     setValue(settingsWindow, fields[1], 'secret');
-    click(settingsWindow, settingsWindow.document.querySelector('button'));
+    click(settingsWindow, settingsWindow.document.querySelector('.save-button'));
     await waitFor(() => app.document.querySelector('.time-entry'));
     assert.deepEqual(app.settings, { redmineUrl: 'https://redmine.test', apiKey: 'secret' });
     assert.ok(settingsWindow.document.querySelector('[role="status"]'));
@@ -158,15 +158,46 @@ test('окно настроек показывает сохранённые зн
   window.chrome = { i18n: { getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => saved, set: async () => { writes++; } } } };
   try {
     window.eval(settingsScript);
-    await waitFor(() => window.document.querySelector('button:not([disabled])'));
+    await waitFor(() => window.document.querySelector('.save-button:not([disabled])'));
     const fields = window.document.querySelectorAll('input');
     assert.equal(fields[0].value, saved.redmineUrl);
     assert.equal(fields[1].value, saved.apiKey);
     assert.equal(fields[1].type, 'password');
     setValue(window, fields[1], '');
-    click(window, window.document.querySelector('button'));
+    click(window, window.document.querySelector('.save-button'));
     await waitFor(() => window.document.querySelector('[role="alert"]'));
     assert.equal(writes, 0);
+  } finally { window.close(); }
+});
+
+test('вкладки сохраняют данные подключения и настройки статусов', async () => {
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { runScripts: 'outside-only' });
+  const { window } = dom;
+  const stored = { redmineUrl: 'https://redmine.test', apiKey: 'secret', workingStatuses: 'Custom' };
+  window.chrome = { i18n: { getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => ({ ...stored }), set: async values => Object.assign(stored, values) } } };
+  try {
+    window.eval(settingsScript);
+    await waitFor(() => window.document.querySelector('.save-button:not([disabled])'));
+    const tabs = window.document.querySelectorAll('.settings-tabs button');
+    const panels = window.document.querySelectorAll('.settings-panel');
+    assert.equal(panels[0].hidden, false);
+    assert.equal(panels[1].hidden, true);
+    assert.equal(window.document.querySelector('input[type="url"]').value, stored.redmineUrl);
+    assert.equal(window.document.querySelector('input[type="password"]').value, stored.apiKey);
+    click(window, tabs[1]);
+    await waitFor(() => !panels[1].hidden);
+    const statusInput = panels[1].querySelector('input');
+    assert.equal(statusInput.value, 'Custom');
+    setValue(window, statusInput, 'Review');
+    click(window, tabs[0]);
+    await waitFor(() => !panels[0].hidden);
+    click(window, tabs[1]);
+    await waitFor(() => !panels[1].hidden);
+    assert.equal(statusInput.value, 'Review');
+    click(window, window.document.querySelector('.save-button'));
+    await waitFor(() => window.document.querySelector('[role="status"]'));
+    assert.equal(stored.workingStatuses, 'Review');
+    assert.equal(stored.apiKey, 'secret');
   } finally { window.close(); }
 });
 

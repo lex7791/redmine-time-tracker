@@ -57,7 +57,7 @@ test('окно задач показывает группы, фильтры, д�
     { id: 1, key: 'TMS-1', subject: 'Задача один', status: { id: 1, name: 'Develop' }, tracker: { name: 'Task' }, project: { name: 'Первый' }, priority: { name: 'High' }, parent: { id: 9 }, estimated_hours: null, spent_hours: 1, created_on: '2026-01-01T00:00:00Z' },
     { id: 2, key: 'TMS-2', subject: 'Задача два', status: { id: 2, name: 'Testing' }, tracker: { name: 'Bug' }, project: { name: 'Второй' }, priority: { name: 'Normal' }, estimated_hours: 2 },
   ];
-  window.chrome = { i18n: { getUILanguage: () => 'ru', getMessage: () => 'Ошибка API' }, storage: { sync: { get: async () => settings, set: async values => Object.assign(settings, values) } }, windows: { create: async () => {} }, runtime: { getURL: path => path } };
+  window.chrome = { i18n: { getUILanguage: () => 'ru', getMessage: () => 'Ошибка API' }, storage: { sync: { get: async () => settings, set: async values => Object.assign(settings, values) }, onChanged: { addListener: () => {}, removeListener: () => {} } }, windows: { create: async () => {} }, runtime: { getURL: path => path } };
   window.fetch = async (url, options) => {
     calls.push({ url, options });
     if (fail) return { ok: false };

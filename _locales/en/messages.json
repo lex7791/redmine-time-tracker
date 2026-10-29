@@ -97,5 +97,32 @@
   },
   "myTasks": {
     "message": "My tasks"
+  },
+  "statusSettings": {
+    "message": "Task status settings"
+  },
+  "statusSettingsHint": {
+    "message": "Enter status names separated by commas."
+  },
+  "workingStatuses": {
+    "message": "In progress statuses"
+  },
+  "testingStatuses": {
+    "message": "My tasks in testing statuses"
+  },
+  "nextStatuses": {
+    "message": "Next statuses"
+  },
+  "backlogStatuses": {
+    "message": "Backlog statuses"
+  },
+  "connectionTab": {
+    "message": "Connection"
+  },
+  "statusTab": {
+    "message": "Task statuses"
+  },
+  "invalidRedmineUrl": {
+    "message": "Enter a valid Redmine URL."
   }
 }

@@ -97,5 +97,32 @@
   },
   "myTasks": {
     "message": "Мои задачи"
+  },
+  "statusSettings": {
+    "message": "Настройка статусов задач"
+  },
+  "statusSettingsHint": {
+    "message": "Укажите названия статусов через запятую."
+  },
+  "workingStatuses": {
+    "message": "Статусы «В работе»"
+  },
+  "testingStatuses": {
+    "message": "Статусы «Мои задачи в тесте»"
+  },
+  "nextStatuses": {
+    "message": "Статусы «Следующие»"
+  },
+  "backlogStatuses": {
+    "message": "Статусы «Бэклог»"
+  },
+  "connectionTab": {
+    "message": "Подключение"
+  },
+  "statusTab": {
+    "message": "Статусы задач"
+  },
+  "invalidRedmineUrl": {
+    "message": "Укажите корректный адрес Redmine."
   }
 }

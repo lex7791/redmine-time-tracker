@@ -19,8 +19,8 @@ h3 { font-size: 15px; }
 .dashboard-tabs button { color: #2c3e50; background: #e2e2e2; }
 .dashboard-tabs button.active { color: white; background: #4caf50; }
 .dashboard-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 15px; }
-.dashboard-filters label, .status-dialog label { display: grid; gap: 5px; }
-.dashboard-filters select, .status-dialog input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+.dashboard-filters label { display: grid; gap: 5px; }
+.dashboard-filters select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: white; }
 .dashboard-filters .clear-filters { margin-left: auto; }
 .dashboard-filters .check { display: flex; align-items: center; padding: 8px; }
 .dashboard-table-wrap { background: white; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto; }
@@ -38,6 +38,3 @@ tbody tr:hover, tbody tr:focus { background: #f5f8ff; }
 .description, .comment p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .description.collapsed { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .comment { padding: 12px 0; border-bottom: 1px solid #eee; }
-.status-dialog { align-self: center; margin: auto; padding: 24px; width: min(540px, 95%); max-height: 95vh; overflow-y: auto; background: white; border-radius: 5px; }
-.status-dialog h2 { margin-top: 0; }
-.status-dialog form { display: grid; gap: 12px; }

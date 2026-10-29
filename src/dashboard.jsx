@@ -32,9 +32,6 @@ function App() {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showStatuses, setShowStatuses] = useState(false);
-  const [statusDraft, setStatusDraft] = useState(statusDefaults);
-  const [statusError, setStatusError] = useState('');
   const loadGeneration = useRef(0);
   const detailGeneration = useRef(0);
   const loader = useRef(null);
@@ -49,7 +46,6 @@ function App() {
       if (generation !== loadGeneration.current) return;
       const nextSettings = { ...statusDefaults, ...stored };
       setSettings(nextSettings);
-      setStatusDraft(Object.fromEntries(statusFields.map(key => [key, nextSettings[key] || statusDefaults[key]])));
       if (!nextSettings.apiKey || !nextSettings.redmineUrl) { setIssues([]); setHierarchies({}); return; }
       const nextLoader = createIssueLoader(nextSettings);
       const data = await assignedIssues(nextSettings);
@@ -73,7 +69,14 @@ function App() {
     }
   }, []);
 
-  useEffect(() => { load(); return () => { loadGeneration.current++; detailGeneration.current++; }; }, [load]);
+  useEffect(() => {
+    const onChange = (changes, area) => {
+      if (area === 'sync' && ['apiKey', 'redmineUrl', ...statusFields].some(key => changes[key])) load();
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    load();
+    return () => { chrome.storage.onChanged.removeListener(onChange); loadGeneration.current++; detailGeneration.current++; };
+  }, [load]);
 
   async function openIssue(issue) {
     const generation = ++detailGeneration.current;
@@ -90,13 +93,8 @@ function App() {
     finally { if (generation === detailGeneration.current) setDetailLoading(false); }
   }
   function closeIssue() { detailGeneration.current++; setSelected(null); setDetails(null); }
-  async function saveStatuses(event) {
-    event.preventDefault();
-    try { await chrome.storage.sync.set(statusDraft); setShowStatuses(false); setStatusError(''); await load(); }
-    catch (e) { setStatusError(e.message); }
-  }
   async function openSettings() {
-    try { await chrome.windows.create({ url: chrome.runtime.getURL('settings.html'), type: 'popup', width: 540, height: 330 }); }
+    try { await chrome.windows.create({ url: chrome.runtime.getURL('settings.html'), type: 'popup', width: 540, height: 520 }); }
     catch (e) { setError(e.message); }
   }
   const base = settings?.redmineUrl?.replace(/\/+$/, '') || '';
@@ -116,7 +114,7 @@ function App() {
   const section = (label, values, value, setValue, all) => <label>{label}<select value={value} onChange={e => setValue(e.target.value)}><option value="">{all}</option>{values.map(item => <option key={item} value={item}>{item}</option>)}</select></label>;
 
   return <main className="dashboard">
-    <header className="dashboard-header"><h1>{copy.title}</h1><div><button className="secondary" onClick={() => setShowStatuses(true)}>{copy.configuredStatuses}</button> <button className="secondary" onClick={openSettings}>⚙ {copy.settings}</button> <button onClick={load} disabled={loading}>{copy.refresh}</button></div></header>
+    <header className="dashboard-header"><h1>{copy.title}</h1><div><button className="secondary" onClick={openSettings}>⚙ {copy.settings}</button> <button onClick={load} disabled={loading}>{copy.refresh}</button></div></header>
     <p className={error ? 'error' : 'dashboard-message'} role={error ? 'alert' : undefined}>{error ? `${copy.loadError}: ${error}` : loading ? copy.loading : !configured ? copy.missing : ''}</p>
     <nav className="dashboard-tabs">{['working', 'testing', 'next', 'backlog'].map(group => <button key={group} className={view === group ? 'active' : ''} aria-pressed={view === group} onClick={() => setView(group)}>{copy[group]} ({grouped(group).length})</button>)}</nav>
     <div className="dashboard-filters">
@@ -138,7 +136,7 @@ function App() {
       <h3>{copy.description}</h3><p className={`description ${expanded ? '' : 'collapsed'}`}>{details?.description || selected.description || '—'}</p>{(details?.description || selected.description || '').length > 250 && <button className="secondary" onClick={() => setExpanded(!expanded)}>{expanded ? copy.collapse : copy.expand}</button>}
       <h3>{copy.comments}</h3>{(details?.journals || []).filter(journal => journal.notes).map(journal => <article className="comment" key={journal.id}><strong>{journal.user?.name || '—'}</strong> · {dateText(journal.created_on)}<p>{journal.notes}</p></article>)}<p>{copy.timeReadOnly}</p>
     </aside></div>}
-    {showStatuses && <div className="overlay" onClick={() => setShowStatuses(false)}><section className="status-dialog" role="dialog" aria-modal="true" aria-label={copy.configuredStatuses} onClick={e => e.stopPropagation()}><h2>{copy.configuredStatuses}</h2><p>{copy.statusHint}</p><form onSubmit={saveStatuses}>{statusFields.map(field => <label key={field}>{copy[field]}<input value={statusDraft[field] || ''} onChange={e => setStatusDraft({ ...statusDraft, [field]: e.target.value })} /></label>)}{statusError && <p className="error" role="alert">{statusError}</p>}<div><button type="submit">{copy.save}</button> <button type="button" className="secondary" onClick={() => setShowStatuses(false)}>{copy.cancel}</button></div></form></section></div>}
+
   </main>;
 }
 

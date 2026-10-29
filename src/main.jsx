@@ -48,7 +48,7 @@ function App() {
 
   async function openSettings() {
     try {
-      await chrome.windows.create({ url: chrome.runtime.getURL('settings.html'), type: 'popup', width: 540, height: 330 });
+      await chrome.windows.create({ url: chrome.runtime.getURL('settings.html'), type: 'popup', width: 540, height: 520 });
     } catch (e) { setError(e.message); }
   }
 
