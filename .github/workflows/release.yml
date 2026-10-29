@@ -10,8 +10,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Собрать расширение
-        run: zip -r extension.zip . -x "*.git*" "node_modules/*"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Установить зависимости
+        run: npm ci
+
+      - name: Проверить и собрать расширение
+        run: npm test
+
+      - name: Упаковать расширение
+        run: cd dist && zip -r ../extension.zip .
 
       - name: Создать релиз
         uses: softprops/action-gh-release@v2
