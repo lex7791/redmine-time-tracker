@@ -79,5 +79,20 @@
   },
   "zeroHours": {
     "message": "0h"
+  },
+  "settingsTitle": {
+    "message": "Settings"
+  },
+  "openSettings": {
+    "message": "Open settings"
+  },
+  "urlLabel": {
+    "message": "Redmine URL"
+  },
+  "apiKeyLabel": {
+    "message": "API key"
+  },
+  "settingsWindowTitle": {
+    "message": "Connection settings"
   }
 }

@@ -79,5 +79,20 @@
   },
   "zeroHours": {
     "message": "0ч"
+  },
+  "settingsTitle": {
+    "message": "Настройки"
+  },
+  "openSettings": {
+    "message": "Открыть настройки"
+  },
+  "urlLabel": {
+    "message": "Адрес Redmine"
+  },
+  "apiKeyLabel": {
+    "message": "API-ключ"
+  },
+  "settingsWindowTitle": {
+    "message": "Настройки подключения"
   }
 }

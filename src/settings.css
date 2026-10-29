@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+body { margin: 0; padding: 20px; font: 14px Arial, sans-serif; color: #2c3e50; }
+h1 { margin: 0 0 18px; font-size: 20px; }
+form { display: grid; gap: 12px; }
+label { display: grid; gap: 5px; }
+input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+button { justify-self: start; padding: 8px 15px; color: white; background: #4caf50; border: 0; border-radius: 4px; cursor: pointer; }
+button:hover { background: #45a049; }
+button:disabled { opacity: .6; cursor: default; }
+p { margin: 0; }
+.error { color: #b00020; }

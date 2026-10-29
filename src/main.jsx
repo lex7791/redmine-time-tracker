@@ -16,7 +16,7 @@ function Icon({ name }) { return <svg viewBox="0 0 24 24" aria-hidden="true"><pa
 
 function App() {
   const [settings, setSettings] = useState(null);
-  const [draft, setDraft] = useState({ redmineUrl: '', apiKey: '' });
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [week, setWeek] = useState(() => monday(new Date()));
   const [form, setForm] = useState(emptyForm);
   const [entries, setEntries] = useState([]);
@@ -27,13 +27,30 @@ function App() {
   const generation = useRef(0);
 
   useEffect(() => {
-    chrome.storage.sync.get(['apiKey', 'redmineUrl']).then(data => {
-      const saved = { apiKey: data.apiKey || '', redmineUrl: data.redmineUrl || '' };
-      setDraft(saved);
-      if (saved.apiKey && saved.redmineUrl) setSettings(saved);
-      else alert(t('missingSettingsAlert'));
-    }).catch(e => setError(e.message));
+    let active = true;
+    async function loadSettings() {
+      try {
+        const data = await chrome.storage.sync.get(['apiKey', 'redmineUrl']);
+        if (!active) return;
+        setSettings(data.apiKey && data.redmineUrl ? { apiKey: data.apiKey, redmineUrl: data.redmineUrl } : null);
+        setSettingsLoaded(true);
+      } catch (e) {
+        if (active) { setError(e.message); setSettingsLoaded(true); }
+      }
+    }
+    const onChange = (changes, area) => {
+      if (area === 'sync' && (changes.apiKey || changes.redmineUrl)) loadSettings();
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    loadSettings();
+    return () => { active = false; chrome.storage.onChanged.removeListener(onChange); };
   }, []);
+
+  async function openSettings() {
+    try {
+      await chrome.windows.create({ url: chrome.runtime.getURL('settings.html'), type: 'popup', width: 540, height: 330 });
+    } catch (e) { setError(e.message); }
+  }
 
   const loadWeek = useCallback(async (activeSettings, activeWeek, current) => {
     const dates = weekDates(activeWeek);
@@ -60,18 +77,6 @@ function App() {
       .finally(() => { if (generation.current === current) setLoading(false); });
     return () => { generation.current++; };
   }, [settings, week, loadWeek]);
-
-  async function saveSettings() {
-    const next = { redmineUrl: draft.redmineUrl.trim(), apiKey: draft.apiKey.trim() };
-    if (!next.redmineUrl) return alert(t('missingRedmineUrlAlert'));
-    if (!next.apiKey) return alert(t('missingApiKeyAlert'));
-    try {
-      await chrome.storage.sync.set(next);
-      setSettings(next);
-      setForm(emptyForm());
-      alert(t('settingsSavedAlert'));
-    } catch (e) { setError(e.message); }
-  }
 
   async function mutate(action) {
     if (!settings || loading) return false;
@@ -119,12 +124,11 @@ function App() {
   function moveWeek(amount) { setWeek(previous => { const next = new Date(previous); next.setDate(next.getDate() + amount); return next; }); }
 
   return <div className="container">
-    <div className="settings">
-      <input type="url" value={draft.redmineUrl} onChange={e => setDraft({ ...draft, redmineUrl: e.target.value })} placeholder={t('redmineUrlPlaceholder')} aria-label={t('redmineUrlPlaceholder')} />
-      <input type="text" value={draft.apiKey} onChange={e => setDraft({ ...draft, apiKey: e.target.value })} placeholder={t('apiKeyPlaceholder')} aria-label={t('apiKeyPlaceholder')} />
-      <button onClick={saveSettings}>{t('saveSettings')}</button>
+    <div className="toolbar">
+      <button className="settings-button" type="button" onClick={openSettings}><span aria-hidden="true">⚙</span> {t('settingsTitle')}</button>
       <div className="week-info"><button className="danger" onClick={() => moveWeek(-7)}>← {t('prevWeek')}</button><button className="danger" onClick={() => moveWeek(7)}>{t('nextWeek')} →</button></div>
     </div>
+    {settingsLoaded && !settings && !error && <p className="settings-notice">{t('missingSettingsAlert')} <button type="button" className="settings-link" onClick={openSettings}>{t('openSettings')}</button></p>}
     <div className="control">
       <label className="caption" htmlFor="taskNumber">{t('quickEntryCaption')} <Icon name="copy" /></label>
       <form className="fast-creation" onSubmit={saveTime}>

@@ -1,11 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 
 const messages = JSON.parse(readFileSync('_locales/ru/messages.json', 'utf8'));
-const bundle = readdirSync('dist/assets').find(name => name.endsWith('.js'));
-const script = readFileSync(`dist/assets/${bundle}`, 'utf8');
+async function bundle(entry) {
+  const result = await build({ entryPoints: [entry], bundle: true, write: false, format: 'iife', platform: 'browser', loader: { '.css': 'empty' }, define: { 'process.env.NODE_ENV': '"production"' } });
+  return result.outputFiles[0].text;
+}
+const [script, settingsScript] = await Promise.all([bundle('src/main.jsx'), bundle('src/settings.jsx')]);
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(predicate) {
   for (let i = 0; i < 100; i++) {
@@ -27,11 +31,15 @@ async function setup({ initialSettings = true } = {}) {
   const alerts = [];
   const settings = initialSettings ? { redmineUrl: 'https://redmine.test', apiKey: 'secret' } : {};
   let entries = [{ id: 10, issue: { id: 42 }, spent_on: new Date().toLocaleDateString('en-CA'), hours: 1.5, activity: { id: 7 }, comments: 'Исходный комментарий' }];
+  const listeners = new Set();
+  const windows = [];
   let failRefresh = false;
   let failWrite = false;
   window.chrome = {
     i18n: { getUILanguage: () => 'ru', getMessage: (key, substitutions) => (messages[key]?.message || '').replace(/\$(\d)/g, (_, n) => substitutions?.[n - 1] || '') },
-    storage: { sync: { get: async () => ({ ...settings }), set: async next => Object.assign(settings, next) } },
+    storage: { sync: { get: async () => ({ ...settings }), set: async next => Object.assign(settings, next) }, onChanged: { addListener: listener => listeners.add(listener), removeListener: listener => listeners.delete(listener) } },
+    windows: { create: async options => { windows.push(options); } },
+    runtime: { getURL: path => `chrome-extension://test/${path}` },
   };
   window.alert = message => alerts.push(message);
   window.fetch = async (url, options) => {
@@ -58,10 +66,10 @@ async function setup({ initialSettings = true } = {}) {
     return { ok: true, status: data ? 200 : 204, headers: { get: key => key === 'content-type' && data ? 'application/json' : null }, json: async () => data };
   };
   window.eval(script);
-  await waitFor(() => window.document.querySelector('.settings'));
+  await waitFor(() => window.document.querySelector('.toolbar'));
   if (initialSettings) await waitFor(() => window.document.querySelector('.time-entry'));
-  else await waitFor(() => alerts.length);
-  return { window, document: window.document, calls, alerts, settings, failNextRefresh: () => { failRefresh = true; }, failNextWrite: () => { failWrite = true; }, close: () => window.close() };
+  else await waitFor(() => window.document.querySelector('.settings-notice'));
+  return { window, document: window.document, calls, alerts, settings, windows, notify: changes => listeners.forEach(listener => listener(changes, 'sync')), failNextRefresh: () => { failRefresh = true; }, failNextWrite: () => { failWrite = true; }, close: () => window.close() };
 }
 
 function click(window, element) { element.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); }
@@ -71,7 +79,11 @@ test('загрузка настроек, недели, активности, к�
   const app = await setup();
   const { window, document, calls } = app;
   try {
-    assert.equal(document.querySelector('.settings input').value, 'https://redmine.test');
+    assert.equal(document.querySelector('.toolbar input'), null);
+    click(window, document.querySelector('.settings-button'));
+    await waitFor(() => app.windows.length === 1);
+    assert.equal(app.windows[0].url, 'chrome-extension://test/settings.html');
+    assert.equal(app.windows[0].type, 'popup');
     assert.equal(document.querySelectorAll('.day-column').length, 7);
     assert.equal(document.querySelector('.entry-key').textContent, 'TMS-42');
     assert.equal(document.querySelector('.entry-hour').textContent, '1ч 30м');
@@ -105,17 +117,51 @@ test('загрузка настроек, недели, активности, к�
   } finally { app.close(); }
 });
 
-test('настройки сохраняются и запускают загрузку данных', async () => {
+test('окно настроек сохраняет прежние ключи и popup подхватывает изменения', async () => {
   const app = await setup({ initialSettings: false });
+  const settingsDom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'https://extension.test/settings.html', runScripts: 'outside-only' });
+  const settingsWindow = settingsDom.window;
   try {
-    const fields = app.document.querySelectorAll('.settings input');
-    setValue(app.window, fields[0], 'https://redmine.test');
-    setValue(app.window, fields[1], 'secret');
-    click(app.window, app.document.querySelector('.settings button'));
+    click(app.window, app.document.querySelector('.settings-link'));
+    await waitFor(() => app.windows.length === 1);
+    settingsWindow.chrome = {
+      i18n: app.window.chrome.i18n,
+      storage: { sync: {
+        get: async () => ({ ...app.settings }),
+        set: async next => { Object.assign(app.settings, next); app.notify({ redmineUrl: { newValue: next.redmineUrl }, apiKey: { newValue: next.apiKey } }); },
+      } },
+    };
+    settingsWindow.eval(settingsScript);
+    await waitFor(() => settingsWindow.document.querySelector('button:not([disabled])'));
+    const fields = settingsWindow.document.querySelectorAll('input');
+    setValue(settingsWindow, fields[0], 'https://redmine.test');
+    setValue(settingsWindow, fields[1], 'secret');
+    click(settingsWindow, settingsWindow.document.querySelector('button'));
     await waitFor(() => app.document.querySelector('.time-entry'));
     assert.deepEqual(app.settings, { redmineUrl: 'https://redmine.test', apiKey: 'secret' });
-    assert.equal(app.alerts.length, 2);
-  } finally { app.close(); }
+    assert.ok(settingsWindow.document.querySelector('[role="status"]'));
+    assert.equal(app.document.querySelector('.settings-notice'), null);
+  } finally { settingsWindow.close(); app.close(); }
+});
+
+test('окно настроек показывает сохранённые значения и проверяет обязательные поля', async () => {
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { runScripts: 'outside-only' });
+  const { window } = dom;
+  const saved = { redmineUrl: 'https://redmine.test', apiKey: 'existing' };
+  let writes = 0;
+  window.chrome = { i18n: { getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => saved, set: async () => { writes++; } } } };
+  try {
+    window.eval(settingsScript);
+    await waitFor(() => window.document.querySelector('button:not([disabled])'));
+    const fields = window.document.querySelectorAll('input');
+    assert.equal(fields[0].value, saved.redmineUrl);
+    assert.equal(fields[1].value, saved.apiKey);
+    assert.equal(fields[1].type, 'password');
+    setValue(window, fields[1], '');
+    click(window, window.document.querySelector('button'));
+    await waitFor(() => window.document.querySelector('[role="alert"]'));
+    assert.equal(writes, 0);
+  } finally { window.close(); }
 });
 
 test('после успешного сохранения и ошибки обновления форма очищается', async () => {
