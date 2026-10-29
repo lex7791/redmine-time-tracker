@@ -94,5 +94,8 @@
   },
   "settingsWindowTitle": {
     "message": "Connection settings"
+  },
+  "myTasks": {
+    "message": "My tasks"
   }
 }

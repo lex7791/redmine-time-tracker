@@ -52,6 +52,12 @@ function App() {
     } catch (e) { setError(e.message); }
   }
 
+  async function openDashboard() {
+    try {
+      await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
+    } catch (e) { setError(e.message); }
+  }
+
   const loadWeek = useCallback(async (activeSettings, activeWeek, current) => {
     const dates = weekDates(activeWeek);
     const data = await request(activeSettings, `time_entries.json?user_id=me&from=${isoDate(dates[0])}&to=${isoDate(dates[6])}&limit=100`);
@@ -125,7 +131,7 @@ function App() {
 
   return <div className="container">
     <div className="toolbar">
-      <button className="settings-button" type="button" onClick={openSettings}><span aria-hidden="true">⚙</span> {t('settingsTitle')}</button>
+      <div className="toolbar-actions"><button className="settings-button" type="button" onClick={openSettings}><span aria-hidden="true">⚙</span> {t('settingsTitle')}</button><button type="button" onClick={openDashboard}>{t('myTasks')}</button></div>
       <div className="week-info"><button className="danger" onClick={() => moveWeek(-7)}>← {t('prevWeek')}</button><button className="danger" onClick={() => moveWeek(7)}>{t('nextWeek')} →</button></div>
     </div>
     {settingsLoaded && !settings && !error && <p className="settings-notice">{t('missingSettingsAlert')} <button type="button" className="settings-link" onClick={openSettings}>{t('openSettings')}</button></p>}

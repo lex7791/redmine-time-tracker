@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   base: './',
-  build: { rollupOptions: { input: ['popup.html', 'settings.html'] } },
+  build: { rollupOptions: { input: ['popup.html', 'settings.html', 'dashboard.html'] } },
   plugins: [{
     name: 'extension-assets',
     closeBundle() {

@@ -28,6 +28,8 @@ body {
     width: 780px;
 }
 
+.toolbar-actions { display: flex; gap: 8px; }
+
 .settings-button {
     background: #3b66db;
 }

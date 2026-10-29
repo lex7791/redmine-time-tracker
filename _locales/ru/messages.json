@@ -94,5 +94,8 @@
   },
   "settingsWindowTitle": {
     "message": "Настройки подключения"
+  },
+  "myTasks": {
+    "message": "Мои задачи"
   }
 }

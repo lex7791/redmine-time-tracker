@@ -33,12 +33,14 @@ async function setup({ initialSettings = true } = {}) {
   let entries = [{ id: 10, issue: { id: 42 }, spent_on: new Date().toLocaleDateString('en-CA'), hours: 1.5, activity: { id: 7 }, comments: 'Исходный комментарий' }];
   const listeners = new Set();
   const windows = [];
+  const tabs = [];
   let failRefresh = false;
   let failWrite = false;
   window.chrome = {
     i18n: { getUILanguage: () => 'ru', getMessage: (key, substitutions) => (messages[key]?.message || '').replace(/\$(\d)/g, (_, n) => substitutions?.[n - 1] || '') },
     storage: { sync: { get: async () => ({ ...settings }), set: async next => Object.assign(settings, next) }, onChanged: { addListener: listener => listeners.add(listener), removeListener: listener => listeners.delete(listener) } },
     windows: { create: async options => { windows.push(options); } },
+    tabs: { create: async options => { tabs.push(options); } },
     runtime: { getURL: path => `chrome-extension://test/${path}` },
   };
   window.alert = message => alerts.push(message);
@@ -69,7 +71,7 @@ async function setup({ initialSettings = true } = {}) {
   await waitFor(() => window.document.querySelector('.toolbar'));
   if (initialSettings) await waitFor(() => window.document.querySelector('.time-entry'));
   else await waitFor(() => window.document.querySelector('.settings-notice'));
-  return { window, document: window.document, calls, alerts, settings, windows, notify: changes => listeners.forEach(listener => listener(changes, 'sync')), failNextRefresh: () => { failRefresh = true; }, failNextWrite: () => { failWrite = true; }, close: () => window.close() };
+  return { window, document: window.document, calls, alerts, settings, windows, tabs, notify: changes => listeners.forEach(listener => listener(changes, 'sync')), failNextRefresh: () => { failRefresh = true; }, failNextWrite: () => { failWrite = true; }, close: () => window.close() };
 }
 
 function click(window, element) { element.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); }
@@ -84,6 +86,10 @@ test('загрузка настроек, недели, активности, к�
     await waitFor(() => app.windows.length === 1);
     assert.equal(app.windows[0].url, 'chrome-extension://test/settings.html');
     assert.equal(app.windows[0].type, 'popup');
+    click(window, [...document.querySelectorAll('.toolbar-actions button')][1]);
+    await waitFor(() => app.tabs.length === 1);
+    assert.equal(app.tabs[0].url, 'chrome-extension://test/dashboard.html');
+    assert.equal(app.windows.length, 1);
     assert.equal(document.querySelectorAll('.day-column').length, 7);
     assert.equal(document.querySelector('.entry-key').textContent, 'TMS-42');
     assert.equal(document.querySelector('.entry-hour').textContent, '1ч 30м');
