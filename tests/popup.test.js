@@ -24,7 +24,7 @@ function setValue(window, element, value) {
   element.dispatchEvent(new window.Event(element.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
 }
 
-async function setup({ initialSettings = true } = {}) {
+async function setup({ initialSettings = true, tracker } = {}) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'https://extension.test/popup.html', runScripts: 'outside-only' });
   const { window } = dom;
   const calls = [];
@@ -55,7 +55,7 @@ async function setup({ initialSettings = true } = {}) {
       const from = parsed.searchParams.get('from');
       const to = parsed.searchParams.get('to');
       data = { time_entries: entries.filter(entry => entry.spent_on >= from && entry.spent_on <= to) };
-    } else if (parsed.pathname === '/issues.json') data = { issues: [{ id: 42, key: 'TMS-42', subject: 'Задача для проверки' }] };
+    } else if (parsed.pathname === '/issues.json') data = { issues: [{ id: 42, key: 'TMS-42', subject: 'Задача для проверки', tracker }] };
     else if (parsed.pathname === '/issues/TMS-42.json') data = { issue: { id: 42 } };
     else if (parsed.pathname === '/time_entries.json' && options.method === 'POST') {
       const entry = JSON.parse(options.body).time_entry;
@@ -76,6 +76,19 @@ async function setup({ initialSettings = true } = {}) {
 
 function click(window, element) { element.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); }
 function inputs(document) { return document.querySelectorAll('.fast-creation input'); }
+
+test('цвет карточки определяется типом задачи и неизвестный тип отображается нейтрально', async () => {
+  for (const [name, color] of [['Bug', 'bug'], ['🐞 Bug!', 'bug'], ['New feature', 'feature'], ['❇️New feature', 'feature'], ['✨ New  feature ✨', 'feature'], ['🔩Improvement', 'improvement'], ['🔹Task', 'task'], ['Ошибка', 'other'], ['Задача', 'other'], ['Новая функциональность', 'other'], ['Улучшение', 'other'], ['Custom Bug', 'other'], [undefined, 'other']]) {
+    const app = await setup({ tracker: name ? { name } : undefined });
+    try {
+      const entry = app.document.querySelector('.time-entry');
+      assert.ok(entry.classList.contains(`tracker-${color}`));
+      assert.equal(entry.getAttribute('title'), null);
+      assert.equal(entry.querySelector('.entry-title').getAttribute('data-tooltip'), name ? `${name}\nЗадача для проверки` : 'Задача для проверки');
+      assert.equal(app.calls.filter(call => call.path === '/issues.json').length, 1);
+    } finally { app.close(); }
+  }
+});
 
 test('загрузка настроек, недели, активности, копирование, добавление, редактирование и удаление', async () => {
   const app = await setup();

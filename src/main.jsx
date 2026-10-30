@@ -11,8 +11,19 @@ const icons = {
   copy: 'M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z',
   delete: 'M 10 2 L 9 3 L 4 3 L 4 5 L 5 5 L 5 20 C 5 20.522222 5.1913289 21.05461 5.5683594 21.431641 C 5.9453899 21.808671 6.4777778 22 7 22 L 17 22 C 17.522222 22 18.05461 21.808671 18.431641 21.431641 C 18.808671 21.05461 19 20.522222 19 20 L 19 5 L 20 5 L 20 3 L 15 3 L 14 2 L 10 2 z M 7 5 L 17 5 L 17 20 L 7 20 L 7 5 z M 9 7 L 9 18 L 11 18 L 11 7 L 9 7 z M 13 7 L 13 18 L 15 18 L 15 7 L 13 7 z',
   edit: 'M 18.414 2 C 17.902 2 17.391 2.195 17 2.586 L 4 15.586 L 4 20 L 8.414 20 L 21.414 7 C 22.195 6.219 22.195 4.953 21.414 4.172 L 19.828 2.586 C 19.438 2.195 18.926 2 18.414 2 z M 18.414 4 L 20 5.586 L 18.586 7 L 17 5.414 L 18.414 4 z M 15.586 6.828 L 17.172 8.414 L 7.586 18 L 6 18 L 6 16.414 L 15.586 6.828 z',
+  tasks: 'M 3 5 H 6 V 8 H 3 Z M 8 5 H 21 V 7 H 8 Z M 3 11 H 6 V 14 H 3 Z M 8 11 H 21 V 13 H 8 Z M 3 17 H 6 V 20 H 3 Z M 8 17 H 21 V 19 H 8 Z',
+  settings: 'M 19.14 12.94 C 19.18 12.63 19.2 12.32 19.2 12 C 19.2 11.68 19.18 11.37 19.13 11.06 L 21.16 9.48 L 19.24 6.16 L 16.85 7.12 C 16.36 6.74 15.82 6.43 15.23 6.19 L 14.87 3.65 H 11.03 L 10.67 6.19 C 10.08 6.43 9.54 6.75 9.05 7.12 L 6.66 6.16 L 4.74 9.48 L 6.77 11.06 C 6.72 11.37 6.7 11.69 6.7 12 C 6.7 12.31 6.72 12.63 6.77 12.94 L 4.74 14.52 L 6.66 17.84 L 9.05 16.88 C 9.54 17.26 10.08 17.57 10.67 17.81 L 11.03 20.35 H 14.87 L 15.23 17.81 C 15.82 17.57 16.36 17.25 16.85 16.88 L 19.24 17.84 L 21.16 14.52 Z M 12.95 15 C 11.3 15 9.95 13.65 9.95 12 C 9.95 10.35 11.3 9 12.95 9 C 14.6 9 15.95 10.35 15.95 12 C 15.95 13.65 14.6 15 12.95 15 Z',
 };
 function Icon({ name }) { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={icons[name]} /></svg>; }
+
+function trackerColor(name) {
+  const tracker = name?.toLowerCase().replace(/[\uFE0E\uFE0F]/g, '').replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ').trim();
+  if (tracker === 'bug') return 'bug';
+  if (tracker === 'task') return 'task';
+  if (tracker === 'feature' || tracker === 'new feature') return 'feature';
+  if (tracker === 'improvement') return 'improvement';
+  return 'other';
+}
 
 function App() {
   const [settings, setSettings] = useState(null);
@@ -131,7 +142,7 @@ function App() {
 
   return <div className="container">
     <div className="toolbar">
-      <div className="toolbar-actions"><button className="settings-button" type="button" onClick={openSettings}><span aria-hidden="true">⚙</span> {t('settingsTitle')}</button><button type="button" onClick={openDashboard}>{t('myTasks')}</button></div>
+      <div className="toolbar-actions"><button className="settings-button" type="button" onClick={openSettings}><Icon name="settings" /> {t('settingsTitle')}</button><button className="tasks-button" type="button" onClick={openDashboard}><Icon name="tasks" /> {t('myTasks')}</button></div>
       <div className="week-info"><button className="danger" onClick={() => moveWeek(-7)}>← {t('prevWeek')}</button><button className="danger" onClick={() => moveWeek(7)}>{t('nextWeek')} →</button></div>
     </div>
     {settingsLoaded && !settings && !error && <p className="settings-notice">{t('missingSettingsAlert')} <button type="button" className="settings-link" onClick={openSettings}>{t('openSettings')}</button></p>}
@@ -153,7 +164,9 @@ function App() {
           const issue = issues[entry.issue?.id];
           const key = issue?.key || entry.issue?.id;
           const url = `${settings.redmineUrl.replace(/\/+$/, '')}/issues/${encodeURIComponent(key)}`;
-          return <div className="time-entry" key={entry.id}><a className="entry-key link" target="_blank" rel="noreferrer" href={url}>{key}</a><div className="entry-title hint" data-tooltip={issue?.subject}><a className="entry-task link" target="_blank" rel="noreferrer" href={url}>{issue?.subject}</a></div><div className="entry-body"><div className="entry-comment">{entry.comments}</div></div><div className="entry-bottom"><span className="entry-hour _success">{formatTime(entry.hours, t)}</span>{['delete', 'edit', 'copy'].map(action => <button type="button" key={action} className={`entry-btn ${action}-btn hint`} data-tooltip={t(`${action}EntryTooltip`)} aria-label={t(`${action}EntryTooltip`)} onClick={() => action === 'delete' ? mutate(() => request(settings, `time_entries/${entry.id}.json`, 'DELETE')) : fillForm(entry, action === 'edit')}><Icon name={action} /></button>)}</div></div>;
+          const tracker = issue?.tracker?.name;
+          const tooltip = [tracker, issue?.subject].filter(Boolean).join('\n');
+          return <div className={`time-entry tracker-${trackerColor(tracker)}`} key={entry.id}><a className="entry-key link" target="_blank" rel="noreferrer" href={url}>{key}</a><div className="entry-title hint" data-tooltip={tooltip}><a className="entry-task link" target="_blank" rel="noreferrer" href={url}>{issue?.subject}</a></div><div className="entry-body"><div className="entry-comment">{entry.comments}</div></div><div className="entry-bottom"><span className="entry-hour _success">{formatTime(entry.hours, t)}</span>{['delete', 'edit', 'copy'].map(action => <button type="button" key={action} className={`entry-btn ${action}-btn hint`} data-tooltip={t(`${action}EntryTooltip`)} aria-label={t(`${action}EntryTooltip`)} onClick={() => action === 'delete' ? mutate(() => request(settings, `time_entries/${entry.id}.json`, 'DELETE')) : fillForm(entry, action === 'edit')}><Icon name={action} /></button>)}</div></div>;
         }) : <div className="no-entries">{t('noEntries')}</div>}</div>)}</div>
       </>}
     </div>
