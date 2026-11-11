@@ -15,6 +15,7 @@ const locale = ru ? 'ru-RU' : 'en-US';
 const dateText = value => value && !Number.isNaN(Date.parse(value)) ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : '—';
 const hoursText = value => `${Number(value || 0).toFixed(Number(value || 0) % 1 ? 1 : 0)} ${ru ? 'ч' : 'h'}`;
 const unique = values => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+const priorityTone = name => /high|высок/i.test(name || '') ? 'chip-high' : /low|низк/i.test(name || '') ? 'chip-low' : '';
 const statusFields = Object.keys(statusDefaults);
 
 function App() {
@@ -149,12 +150,40 @@ function App() {
       <td><a className="issue-key" href={issueUrl(issue.id)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{issue.key || `#${issue.id}`}</a> {issue.subject}</td><td>{issue.priority?.name || '—'}</td><td>{issue.status?.name || '—'}</td><td>{issue.estimated_hours ? hoursText(issue.estimated_hours) : copy.needsEstimate}</td><td>{hoursText(issue.spent_hours)}</td>{view === 'working' && <td>{daysInWork(issue) ? `${daysInWork(issue)} ${copy.daysShort}` : '—'}</td>}<td>{dateText(issue.updated_on)}</td>
     </tr>)}</tbody></table>{!visible.length && <p className="empty">{configured ? copy.empty : copy.missing}</p>}{configured && !visible.length && issues.length > 0 && <p className="empty">{copy.loadedStatuses}: {unique(issues.map(i => i.status?.name)).join(', ')}</p>}</div>
     {selected && <div className="overlay" onClick={closeIssue}><aside className="issue-panel" role="dialog" aria-modal="true" aria-label={copy.issue} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') closeIssue(); }}>
-      <header><button className="close" onClick={closeIssue} aria-label={copy.close}>×</button><a className="issue-key" href={issueUrl(selected.id)} target="_blank" rel="noreferrer">{selected.key || `#${selected.id}`}</a><h2>{selected.subject}</h2><p>{selected.status?.name} · {selected.priority?.name}</p><a href={issueUrl(selected.id)} target="_blank" rel="noreferrer">{copy.open}</a></header>
-      <p>{selected.project?.name}{hierarchies[selected.id]?.epic ? ` → ${hierarchies[selected.id].epic.subject}` : ''}{hierarchies[selected.id]?.parent ? ` → ${hierarchies[selected.id].parent.subject}` : ''}</p>
-      {detailLoading && <p>{copy.details}</p>}{detailError && <p className="error" role="alert">{copy.detailsError}: {detailError}</p>}
-      <p>{copy.author}: {details?.author?.name || selected.author?.name || '—'} · {copy.assignee}: {details?.assigned_to?.name || selected.assigned_to?.name || '—'}</p><p>{copy.estimate}: {selected.estimated_hours ? hoursText(selected.estimated_hours) : copy.needsEstimate} · {copy.spent}: {hoursText(selected.spent_hours)}</p>
-      <h3>{copy.description}</h3><div ref={descriptionRef} className={`description ${expanded ? '' : 'collapsed'}`}><Markdown text={description || '—'} html={descriptionHtml} baseUrl={base} /></div>{descriptionOverflows && <button type="button" className="description-toggle" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? copy.collapse : copy.expand}</button>}
-      <h3>{copy.comments}</h3>{(details?.journals || []).filter(journal => journal.notes).map(journal => <article className="comment" key={journal.id}><strong>{journal.user?.name || '—'}</strong> · {dateText(journal.created_on)}<Markdown text={journal.notes} html={journal.notes_html} baseUrl={base} /></article>)}<p>{copy.timeReadOnly}</p>
+      <header className="issue-panel-head">
+        <div className="issue-panel-top">
+          <a className="issue-key" href={issueUrl(selected.id)} target="_blank" rel="noreferrer">{selected.key || `#${selected.id}`}</a>
+          <span className={`tracker-tag tracker-${trackerColor(selected.tracker?.name)}`}>{selected.tracker?.name || '—'}</span>
+        </div>
+        <button className="close" onClick={closeIssue} aria-label={copy.close}>×</button>
+        <h2>{selected.subject}</h2>
+        <div className="issue-badges">
+          <span className="chip">{selected.status?.name || '—'}</span>
+          <span className={`chip ${priorityTone(selected.priority?.name)}`.trim()}>{selected.priority?.name || '—'}</span>
+        </div>
+        <a className="panel-action" href={issueUrl(selected.id)} target="_blank" rel="noreferrer">{copy.open} ↗</a>
+      </header>
+      <div className="issue-panel-body">
+        <p className="issue-path">{selected.project?.name || '—'}{hierarchies[selected.id]?.epic ? ` → ${hierarchies[selected.id].epic.subject}` : ''}{hierarchies[selected.id]?.parent ? ` → ${hierarchies[selected.id].parent.subject}` : ''}</p>
+        {detailLoading && <p className="issue-note">{copy.details}</p>}
+        {detailError && <p className="error" role="alert">{copy.detailsError}: {detailError}</p>}
+        <dl className="issue-facts">
+          <div><dt>{copy.author}</dt><dd>{details?.author?.name || selected.author?.name || '—'}</dd></div>
+          <div><dt>{copy.assignee}</dt><dd>{details?.assigned_to?.name || selected.assigned_to?.name || '—'}</dd></div>
+          <div><dt>{copy.estimate}</dt><dd>{selected.estimated_hours ? hoursText(selected.estimated_hours) : copy.needsEstimate}</dd></div>
+          <div><dt>{copy.spent}</dt><dd>{hoursText(selected.spent_hours)}</dd></div>
+        </dl>
+        <section className="issue-section">
+          <h3>{copy.description}</h3>
+          <div ref={descriptionRef} className={`description ${expanded ? '' : 'collapsed'}`}><Markdown text={description || '—'} html={descriptionHtml} baseUrl={base} /></div>
+          {descriptionOverflows && <button type="button" className="description-toggle" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? copy.collapse : copy.expand}</button>}
+        </section>
+        <section className="issue-section">
+          <h3>{copy.comments}</h3>
+          {(details?.journals || []).filter(journal => journal.notes).map(journal => <article className="comment" key={journal.id}><strong>{journal.user?.name || '—'}</strong> · {dateText(journal.created_on)}<Markdown text={journal.notes} html={journal.notes_html} baseUrl={base} /></article>)}
+        </section>
+        <p className="panel-note">{copy.timeReadOnly}</p>
+      </div>
     </aside></div>}
 
   </main>;

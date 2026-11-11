@@ -106,6 +106,9 @@ test('окно задач показывает группы, фильтры, д�
     assert.equal(doc.querySelectorAll('.comment')[1].querySelectorAll('strong').length, 1);
     assert.equal(doc.querySelector('.issue-panel').textContent.includes('alert(1)'), false);
     assert.equal(doc.querySelector('.description-toggle'), null);
+    assert.equal(doc.querySelector('.issue-panel-head .tracker-tag').textContent, 'Task');
+    assert.deepEqual([...doc.querySelectorAll('.issue-badges .chip')].map(chip => chip.textContent), ['Develop', 'High']);
+    assert.match(doc.querySelector('.issue-facts').textContent, /Автор/);
     click(window, doc.querySelector('.close'));
     await waitFor(() => !doc.querySelector('.issue-panel'));
     Object.defineProperty(window.HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => 500 });
