@@ -32,6 +32,8 @@ test('загрузка всех страниц задач и защита от �
 test('группы статусов и повторное использование запросов к родителям', async () => {
   assert.equal(issueGroup('Code Review', settings), 'working');
   assert.equal(issueGroup('Testing', settings), 'testing');
+  assert.equal(issueGroup('Ready For Test', settings), 'testing');
+  assert.equal(issueGroup('Ready For Test', { ...settings, testingStatuses: 'Ready for testing, Testing' }), 'testing');
   assert.equal(issueGroup('Ready', settings), 'next');
   assert.equal(issueGroup('Unknown', settings), 'backlog');
   assert.equal(issueGroup('My custom status', { ...settings, workingStatuses: 'My custom status' }), 'working');

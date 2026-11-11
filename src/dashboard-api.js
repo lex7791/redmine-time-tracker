@@ -3,7 +3,7 @@ import { trackerLabel } from './utils.js';
 
 export const statusDefaults = {
   workingStatuses: 'Develop, Code Review',
-  testingStatuses: 'Ready for testing, Testing',
+  testingStatuses: 'Ready For Test, Ready for testing, Testing',
   nextStatuses: 'Next, Следующие, Готово к работе, Ready',
   backlogStatuses: 'Backlog',
 };
