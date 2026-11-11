@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { assignedIssues, createIssueLoader, getHierarchy, issueGroup, statusDefaults } from './dashboard-api.js';
+import { trackerColor } from './utils.js';
 import './dashboard.css';
 
 const ru = chrome.i18n.getUILanguage().startsWith('ru');
@@ -125,7 +126,7 @@ function App() {
       <button className="secondary clear-filters" type="button" onClick={() => { setProject(''); setTracker(''); setPriority(''); setEstimate(false); }}>{copy.clearFilters}</button>
     </div>
     <div className="dashboard-table-wrap"><table><thead><tr>{[copy.project, copy.type, copy.parent, copy.issue, copy.priority, copy.status, copy.estimate, copy.spent, ...(view === 'working' ? [copy.days] : []), copy.updated].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{visible.map(issue => <tr key={issue.id} tabIndex="0" onClick={() => openIssue(issue)} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openIssue(issue); } }}>
-      <td>{issue.project?.name || '—'}</td><td className="issue-type">{issue.tracker?.name || '—'}</td><td>{issue.parent?.id ? <a href={issueUrl(issue.parent.id)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{hierarchies[issue.id]?.parent?.subject || `#${issue.parent.id}`}</a> : '—'}</td>
+      <td>{issue.project?.name || '—'}</td><td className="issue-type"><span className={`tracker-tag tracker-${trackerColor(issue.tracker?.name)}`}>{issue.tracker?.name || '—'}</span></td><td>{issue.parent?.id ? <a href={issueUrl(issue.parent.id)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{hierarchies[issue.id]?.parent?.subject || `#${issue.parent.id}`}</a> : '—'}</td>
       <td><a href={issueUrl(issue.id)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{issue.key || `#${issue.id}`}</a> {issue.subject}</td><td>{issue.priority?.name || '—'}</td><td>{issue.status?.name || '—'}</td><td>{issue.estimated_hours ? hoursText(issue.estimated_hours) : copy.needsEstimate}</td><td>{hoursText(issue.spent_hours)}</td>{view === 'working' && <td>{daysInWork(issue) ? `${daysInWork(issue)} ${copy.daysShort}` : '—'}</td>}<td>{dateText(issue.updated_on)}</td>
     </tr>)}</tbody></table>{!visible.length && <p className="empty">{configured ? copy.empty : copy.missing}</p>}{configured && !visible.length && issues.length > 0 && <p className="empty">{copy.loadedStatuses}: {unique(issues.map(i => i.status?.name)).join(', ')}</p>}</div>
     {selected && <div className="overlay" onClick={closeIssue}><aside className="issue-panel" role="dialog" aria-modal="true" aria-label={copy.issue} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') closeIssue(); }}>

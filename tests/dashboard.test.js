@@ -55,7 +55,7 @@ test('окно задач показывает группы, фильтры, д�
   let fail = false;
   const issues = [
     { id: 1, key: 'TMS-1', subject: 'Задача один', status: { id: 1, name: 'Develop' }, tracker: { name: 'Task' }, project: { name: 'Первый' }, priority: { name: 'High' }, parent: { id: 9 }, estimated_hours: null, spent_hours: 1, created_on: '2026-01-01T00:00:00Z' },
-    { id: 2, key: 'TMS-2', subject: 'Задача два', status: { id: 2, name: 'Testing' }, tracker: { name: 'Bug' }, project: { name: 'Второй' }, priority: { name: 'Normal' }, estimated_hours: 2 },
+    { id: 2, key: 'TMS-2', subject: 'Задача два', status: { id: 2, name: 'Testing' }, tracker: { name: '🐞 Bug' }, project: { name: 'Второй' }, priority: { name: 'Normal' }, estimated_hours: 2 },
   ];
   window.chrome = { i18n: { getUILanguage: () => 'ru', getMessage: () => 'Ошибка API' }, storage: { sync: { get: async () => settings, set: async values => Object.assign(settings, values) }, onChanged: { addListener: () => {}, removeListener: () => {} } }, windows: { create: async () => {} }, runtime: { getURL: path => path } };
   window.fetch = async (url, options) => {
@@ -73,6 +73,7 @@ test('окно задач показывает группы, фильтры, д�
     await waitFor(() => doc.querySelector('tbody tr'));
     await waitFor(() => doc.querySelector('tbody tr').textContent.includes('Родитель'));
     assert.match(doc.querySelector('tbody tr').textContent, /TMS-1/);
+    assert.ok(doc.querySelector('tbody tr .issue-type .tracker-tag.tracker-task'));
     assert.equal(calls[0].options.headers['X-Redmine-API-Key'], 'key');
     click(window, doc.querySelector('tbody tr'));
     await waitFor(() => doc.querySelector('.comment'));
@@ -82,6 +83,8 @@ test('окно задач показывает группы, фильтры, д�
     click(window, doc.querySelector('.close'));
     click(window, [...doc.querySelectorAll('.dashboard-tabs button')][1]);
     await waitFor(() => doc.querySelector('tbody tr')?.textContent.includes('TMS-2'));
+    assert.ok(doc.querySelector('tbody tr .issue-type .tracker-tag.tracker-bug'));
+    assert.equal(doc.querySelector('tbody tr .issue-type .tracker-tag').textContent, 'Bug');
     const filters = doc.querySelectorAll('.dashboard-filters select');
     assert.match(filters[1].parentElement.textContent, /Тип задачи/);
     assert.match(doc.querySelector('.check').textContent, /Без оценки/);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isoDate, monday, weekDates, formatTime } from '../src/utils.js';
+import { isoDate, monday, weekDates, formatTime, trackerLabel } from '../src/utils.js';
 
 const translate = (key, [value] = []) => ({ hoursShort: `${value}h`, minutesShort: `${value}m`, zeroHours: '0h' })[key];
 
@@ -18,4 +18,15 @@ test('time formatting converts hours and units for display', () => {
   assert.equal(formatTime(1.25, translate), '1h 15m');
   assert.equal(formatTime('30m', translate), '30m');
   assert.equal(formatTime(0, translate), '0h');
+});
+
+test('tracker labels drop icons and keep only the type name', () => {
+  assert.equal(trackerLabel('🐞 Bug'), 'Bug');
+  assert.equal(trackerLabel('❇️New feature'), 'New feature');
+  assert.equal(trackerLabel('✨ New  feature ✨'), 'New feature');
+  assert.equal(trackerLabel('🔹Task'), 'Task');
+  assert.equal(trackerLabel('👍🏽 Improvement'), 'Improvement');
+  assert.equal(trackerLabel('Task'), 'Task');
+  assert.equal(trackerLabel(''), '');
+  assert.equal(trackerLabel(undefined), '');
 });

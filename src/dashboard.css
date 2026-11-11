@@ -28,6 +28,12 @@ table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
 th { background: #f2f2f2; white-space: nowrap; }
 .issue-type { white-space: nowrap; }
+.issue-type .tracker-tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef1f4; color: #5b6878; }
+.issue-type .tracker-tag::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.issue-type .tracker-tag.tracker-bug { background: #fdecec; color: #c23a43; }
+.issue-type .tracker-tag.tracker-task { background: #eaf1fe; color: #3568c9; }
+.issue-type .tracker-tag.tracker-feature { background: #e9f7ee; color: #2d8f53; }
+.issue-type .tracker-tag.tracker-improvement { background: #f3ecfc; color: #7a46bd; }
 tbody tr { cursor: pointer; }
 tbody tr:hover, tbody tr:focus { background: #f5f8ff; }
 .empty { text-align: center; color: #777; padding: 12px; }

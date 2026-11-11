@@ -1,4 +1,5 @@
 import { request } from './api.js';
+import { trackerLabel } from './utils.js';
 
 export const statusDefaults = {
   workingStatuses: 'Develop, Code Review',
@@ -22,7 +23,7 @@ export async function assignedIssues(settings) {
   let offset = 0;
   while (true) {
     const data = await request(settings, `issues.json?assigned_to_id=me&status_id=open&limit=${limit}&offset=${offset}`);
-    const page = data?.issues || [];
+    const page = (data?.issues || []).map(issue => issue.tracker ? { ...issue, tracker: { ...issue.tracker, name: trackerLabel(issue.tracker.name) } } : issue);
     issues.push(...page);
     const total = data?.total_count ?? issues.length;
     if (issues.length >= total) break;

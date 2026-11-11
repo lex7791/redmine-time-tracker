@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { request } from './api.js';
-import { formatTime, isoDate, monday, weekDates } from './utils.js';
+import { formatTime, isoDate, monday, trackerColor, weekDates } from './utils.js';
 import '../styles.css';
 
 const t = (key, substitutions) => chrome.i18n.getMessage(key, substitutions) || key;
@@ -15,15 +15,6 @@ const icons = {
   settings: 'M 19.14 12.94 C 19.18 12.63 19.2 12.32 19.2 12 C 19.2 11.68 19.18 11.37 19.13 11.06 L 21.16 9.48 L 19.24 6.16 L 16.85 7.12 C 16.36 6.74 15.82 6.43 15.23 6.19 L 14.87 3.65 H 11.03 L 10.67 6.19 C 10.08 6.43 9.54 6.75 9.05 7.12 L 6.66 6.16 L 4.74 9.48 L 6.77 11.06 C 6.72 11.37 6.7 11.69 6.7 12 C 6.7 12.31 6.72 12.63 6.77 12.94 L 4.74 14.52 L 6.66 17.84 L 9.05 16.88 C 9.54 17.26 10.08 17.57 10.67 17.81 L 11.03 20.35 H 14.87 L 15.23 17.81 C 15.82 17.57 16.36 17.25 16.85 16.88 L 19.24 17.84 L 21.16 14.52 Z M 12.95 15 C 11.3 15 9.95 13.65 9.95 12 C 9.95 10.35 11.3 9 12.95 9 C 14.6 9 15.95 10.35 15.95 12 C 15.95 13.65 14.6 15 12.95 15 Z',
 };
 function Icon({ name }) { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={icons[name]} /></svg>; }
-
-function trackerColor(name) {
-  const tracker = name?.toLowerCase().replace(/[\uFE0E\uFE0F]/g, '').replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ').trim();
-  if (tracker === 'bug') return 'bug';
-  if (tracker === 'task') return 'task';
-  if (tracker === 'feature' || tracker === 'new feature') return 'feature';
-  if (tracker === 'improvement') return 'improvement';
-  return 'other';
-}
 
 function App() {
   const [settings, setSettings] = useState(null);

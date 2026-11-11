@@ -1,3 +1,20 @@
+export function trackerLabel(name) {
+  return String(name || '')
+    .replace(/[\uFE0E\uFE0F\u200D\u20E3]/g, '')
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function trackerColor(name) {
+  const tracker = name?.toLowerCase().replace(/[\uFE0E\uFE0F]/g, '').replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ').trim();
+  if (tracker === 'bug') return 'bug';
+  if (tracker === 'task') return 'task';
+  if (tracker === 'feature' || tracker === 'new feature') return 'feature';
+  if (tracker === 'improvement') return 'improvement';
+  return 'other';
+}
+
 export function monday(date) {
   const result = new Date(date);
   const day = result.getDay();
