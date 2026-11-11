@@ -64,7 +64,10 @@ test('окно задач показывает группы, фильтры, д�
     const path = new URL(url).pathname;
     if (path === '/issues.json') return response({ issues, total_count: issues.length });
     if (path === '/issues/9.json') return response({ issue: { id: 9, subject: 'Родитель', tracker: { name: 'Feature' } } });
-    if (path === '/issues/1.json') return response({ issue: { ...issues[0], description: '<b>без HTML</b>', journals: [{ id: 11, user: { name: 'Автор' }, notes: 'Комментарий' }] } });
+    if (path === '/issues/1.json') return response({ issue: { ...issues[0], description: '**Жирный** сырой текст', description_html: '<p><strong>Жирный</strong> текст и <code>код</code>, <del>удалён</del></p><table><tr><td>A</td></tr></table><ul><li>пункт</li><li><input type="checkbox" checked disabled> готово</li></ul><p><a href="https://example.com">Ссылка</a> и <a href="javascript:alert(1)">плохо</a> — <a href="/issues/42">#42</a></p><script>alert(1)</script>', journals: [
+      { id: 11, user: { name: 'Автор' }, notes: '**Комментарий**', notes_html: '<p><strong>Комментарий</strong> и <a href="/issues/42">#42</a></p><pre><code class="json syntaxhl" data-language="json"><span class="p">{}</span></code></pre><script>alert(1)</script>' },
+      { id: 12, user: { name: 'Автор' }, notes: '**Просто** текст' },
+    ] } });
     throw new Error(`Unexpected ${url}`);
   };
   try {
@@ -78,8 +81,43 @@ test('окно задач показывает группы, фильтры, д�
     click(window, doc.querySelector('tbody tr'));
     await waitFor(() => doc.querySelector('.comment'));
     assert.match(doc.querySelector('.issue-panel').textContent, /Комментарий/);
-    assert.equal(doc.querySelector('.description').textContent, '<b>без HTML</b>');
-    assert.equal(doc.querySelector('.description b'), null);
+    assert.match(doc.querySelector('.description').textContent, /Жирный текст и код, удалён/);
+    assert.equal(doc.querySelector('.description').textContent.includes('**'), false);
+    assert.equal(doc.querySelector('.description strong').textContent, 'Жирный');
+    assert.equal(doc.querySelector('.description code').textContent, 'код');
+    assert.equal(doc.querySelector('.description del').textContent, 'удалён');
+    assert.equal(doc.querySelector('.description table td').textContent, 'A');
+    assert.equal(doc.querySelector('.description li').textContent, 'пункт');
+    assert.equal(doc.querySelector('.description input[type="checkbox"]').checked, true);
+    assert.deepEqual([...doc.querySelectorAll('.description a[href]')].map(link => link.getAttribute('href')), ['https://example.com', 'https://redmine.test/issues/42']);
+    assert.equal(doc.querySelectorAll('.description a[href^="javascript"]').length, 0);
+    assert.equal(doc.querySelector('.description script'), null);
+    assert.equal(doc.querySelector('.comment p strong').textContent, 'Комментарий');
+    assert.equal(doc.querySelector('.comment p a').getAttribute('href'), 'https://redmine.test/issues/42');
+    assert.equal(doc.querySelector('.comment p a').getAttribute('target'), '_blank');
+    assert.equal(doc.querySelector('.comment p a').getAttribute('rel'), 'noreferrer');
+    assert.equal(doc.querySelector('.comment code').className, 'json syntaxhl');
+    assert.equal(doc.querySelector('.comment code').getAttribute('data-language'), 'json');
+    assert.equal(doc.querySelector('.comment script'), null);
+    assert.equal(doc.querySelectorAll('.comment').length, 2);
+    assert.equal(doc.querySelectorAll('.comment')[1].querySelector('.markdown-plain').textContent, '**Просто** текст');
+    assert.equal(doc.querySelectorAll('.comment')[1].querySelectorAll('strong').length, 1);
+    assert.equal(doc.querySelector('.issue-panel').textContent.includes('alert(1)'), false);
+    assert.equal(doc.querySelector('.description-toggle'), null);
+    click(window, doc.querySelector('.close'));
+    await waitFor(() => !doc.querySelector('.issue-panel'));
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => 500 });
+    Object.defineProperty(window.HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 100 });
+    click(window, doc.querySelector('tbody tr'));
+    await waitFor(() => doc.querySelector('.description-toggle'));
+    const toggle = () => doc.querySelector('.description-toggle');
+    assert.equal(toggle().textContent, 'Показать полностью');
+    assert.equal(toggle().classList.contains('secondary'), false);
+    click(window, toggle());
+    await waitFor(() => toggle().textContent === 'Свернуть');
+    assert.equal(doc.querySelector('.description').classList.contains('collapsed'), false);
+    click(window, toggle());
+    await waitFor(() => doc.querySelector('.description').classList.contains('collapsed'));
     click(window, doc.querySelector('.close'));
     click(window, [...doc.querySelectorAll('.dashboard-tabs button')][1]);
     await waitFor(() => doc.querySelector('tbody tr')?.textContent.includes('TMS-2'));

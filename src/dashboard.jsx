@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { assignedIssues, createIssueLoader, getHierarchy, issueGroup, statusDefaults } from './dashboard-api.js';
 import { trackerColor } from './utils.js';
+import { Markdown } from './markdown.jsx';
 import './dashboard.css';
 
 const ru = chrome.i18n.getUILanguage().startsWith('ru');
@@ -31,12 +32,16 @@ function App() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const descriptionRef = useRef(null);
   const loadGeneration = useRef(0);
   const detailGeneration = useRef(0);
   const loader = useRef(null);
   const configured = Boolean(settings?.apiKey && settings?.redmineUrl);
+  const description = details?.description || selected?.description || '';
+  const descriptionHtml = details?.description_html || selected?.description_html || '';
 
   const load = useCallback(async () => {
     const generation = ++loadGeneration.current;
@@ -79,9 +84,23 @@ function App() {
     return () => { chrome.storage.onChanged.removeListener(onChange); loadGeneration.current++; detailGeneration.current++; };
   }, [load]);
 
+  useEffect(() => {
+    const node = descriptionRef.current;
+    if (!node || expanded) return;
+    const measure = () => setDescriptionOverflows(node.scrollHeight > node.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [description, expanded, selected]);
+
   async function openIssue(issue) {
     const generation = ++detailGeneration.current;
-    setSelected(issue); setExpanded(false); setDetailError('');
+    setSelected(issue); setExpanded(false); setDescriptionOverflows(false); setDetailError('');
     if (detailCache[issue.id]) { setDetails(detailCache[issue.id]); setDetailLoading(false); return; }
     setDetails(null); setDetailLoading(true);
     try {
@@ -134,8 +153,8 @@ function App() {
       <p>{selected.project?.name}{hierarchies[selected.id]?.epic ? ` → ${hierarchies[selected.id].epic.subject}` : ''}{hierarchies[selected.id]?.parent ? ` → ${hierarchies[selected.id].parent.subject}` : ''}</p>
       {detailLoading && <p>{copy.details}</p>}{detailError && <p className="error" role="alert">{copy.detailsError}: {detailError}</p>}
       <p>{copy.author}: {details?.author?.name || selected.author?.name || '—'} · {copy.assignee}: {details?.assigned_to?.name || selected.assigned_to?.name || '—'}</p><p>{copy.estimate}: {selected.estimated_hours ? hoursText(selected.estimated_hours) : copy.needsEstimate} · {copy.spent}: {hoursText(selected.spent_hours)}</p>
-      <h3>{copy.description}</h3><p className={`description ${expanded ? '' : 'collapsed'}`}>{details?.description || selected.description || '—'}</p>{(details?.description || selected.description || '').length > 250 && <button className="secondary" onClick={() => setExpanded(!expanded)}>{expanded ? copy.collapse : copy.expand}</button>}
-      <h3>{copy.comments}</h3>{(details?.journals || []).filter(journal => journal.notes).map(journal => <article className="comment" key={journal.id}><strong>{journal.user?.name || '—'}</strong> · {dateText(journal.created_on)}<p>{journal.notes}</p></article>)}<p>{copy.timeReadOnly}</p>
+      <h3>{copy.description}</h3><div ref={descriptionRef} className={`description ${expanded ? '' : 'collapsed'}`}><Markdown text={description || '—'} html={descriptionHtml} baseUrl={base} /></div>{descriptionOverflows && <button type="button" className="description-toggle" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? copy.collapse : copy.expand}</button>}
+      <h3>{copy.comments}</h3>{(details?.journals || []).filter(journal => journal.notes).map(journal => <article className="comment" key={journal.id}><strong>{journal.user?.name || '—'}</strong> · {dateText(journal.created_on)}<Markdown text={journal.notes} html={journal.notes_html} baseUrl={base} /></article>)}<p>{copy.timeReadOnly}</p>
     </aside></div>}
 
   </main>;
