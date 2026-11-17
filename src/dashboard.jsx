@@ -119,7 +119,7 @@ function App() {
     catch (e) { setError(e.message); }
   }
   const base = settings?.redmineUrl?.replace(/\/+$/, '') || '';
-  const issueUrl = id => `${base}/issues/${encodeURIComponent(id)}`;
+  const issueUrl = issue => `${base}/issues/${encodeURIComponent(issue.key || issue.id)}`;
   const filtered = issues.filter(issue => (!project || issue.project?.name === project) && (!priority || issue.priority?.name === priority) && (!tracker || issue.tracker?.name === tracker) && (!estimate || !issue.estimated_hours));
   const grouped = group => filtered.filter(issue => issueGroup(issue.status?.name, settings || statusDefaults) === group);
   const visible = grouped(view).sort((a, b) => {
@@ -146,13 +146,13 @@ function App() {
       <button className="secondary clear-filters" type="button" onClick={() => { setProject(''); setTracker(''); setPriority(''); setEstimate(false); }}>{copy.clearFilters}</button>
     </div>
     <div className="dashboard-table-wrap"><table><thead><tr>{[copy.project, copy.type, copy.parent, copy.issue, copy.priority, copy.status, copy.estimate, copy.spent, ...(view === 'working' ? [copy.days] : []), copy.updated].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{visible.map(issue => <tr key={issue.id} tabIndex="0" onClick={() => openIssue(issue)} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openIssue(issue); } }}>
-      <td>{issue.project?.name || '—'}</td><td className="issue-type"><span className={`tracker-tag tracker-${trackerColor(issue.tracker?.name)}`}>{issue.tracker?.name || '—'}</span></td><td>{issue.parent?.id ? <a href={issueUrl(issue.parent.id)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{hierarchies[issue.id]?.parent?.subject || `#${issue.parent.id}`}</a> : '—'}</td>
-      <td><a className="issue-key" href={issueUrl(issue.id)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{issue.key || `#${issue.id}`}</a> {issue.subject}</td><td>{issue.priority?.name || '—'}</td><td>{issue.status?.name || '—'}</td><td>{issue.estimated_hours ? hoursText(issue.estimated_hours) : copy.needsEstimate}</td><td>{hoursText(issue.spent_hours)}</td>{view === 'working' && <td>{daysInWork(issue) ? `${daysInWork(issue)} ${copy.daysShort}` : '—'}</td>}<td>{dateText(issue.updated_on)}</td>
+      <td>{issue.project?.name || '—'}</td><td className="issue-type"><span className={`tracker-tag tracker-${trackerColor(issue.tracker?.name)}`}>{issue.tracker?.name || '—'}</span></td><td>{issue.parent?.id ? <a href={issueUrl(hierarchies[issue.id]?.parent || issue.parent)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{hierarchies[issue.id]?.parent?.subject || `#${issue.parent.id}`}</a> : '—'}</td>
+      <td><a className="issue-key" href={issueUrl(issue)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{issue.key || `#${issue.id}`}</a> {issue.subject}</td><td>{issue.priority?.name || '—'}</td><td>{issue.status?.name || '—'}</td><td>{issue.estimated_hours ? hoursText(issue.estimated_hours) : copy.needsEstimate}</td><td>{hoursText(issue.spent_hours)}</td>{view === 'working' && <td>{daysInWork(issue) ? `${daysInWork(issue)} ${copy.daysShort}` : '—'}</td>}<td>{dateText(issue.updated_on)}</td>
     </tr>)}</tbody></table>{!visible.length && <p className="empty">{configured ? copy.empty : copy.missing}</p>}{configured && !visible.length && issues.length > 0 && <p className="empty">{copy.loadedStatuses}: {unique(issues.map(i => i.status?.name)).join(', ')}</p>}</div>
     {selected && <div className="overlay" onClick={closeIssue}><aside className="issue-panel" role="dialog" aria-modal="true" aria-label={copy.issue} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') closeIssue(); }}>
       <header className="issue-panel-head">
         <div className="issue-panel-top">
-          <a className="issue-key" href={issueUrl(selected.id)} target="_blank" rel="noreferrer">{selected.key || `#${selected.id}`}</a>
+          <a className="issue-key" href={issueUrl(selected)} target="_blank" rel="noreferrer">{selected.key || `#${selected.id}`}</a>
           <span className={`tracker-tag tracker-${trackerColor(selected.tracker?.name)}`}>{selected.tracker?.name || '—'}</span>
         </div>
         <button className="close" onClick={closeIssue} aria-label={copy.close}>×</button>
@@ -161,7 +161,7 @@ function App() {
           <span className="chip">{selected.status?.name || '—'}</span>
           <span className={`chip ${priorityTone(selected.priority?.name)}`.trim()}>{selected.priority?.name || '—'}</span>
         </div>
-        <a className="panel-action" href={issueUrl(selected.id)} target="_blank" rel="noreferrer">{copy.open} ↗</a>
+        <a className="panel-action" href={issueUrl(selected)} target="_blank" rel="noreferrer">{copy.open} ↗</a>
       </header>
       <div className="issue-panel-body">
         <p className="issue-path">{selected.project?.name || '—'}{hierarchies[selected.id]?.epic ? ` → ${hierarchies[selected.id].epic.subject}` : ''}{hierarchies[selected.id]?.parent ? ` → ${hierarchies[selected.id].parent.subject}` : ''}</p>

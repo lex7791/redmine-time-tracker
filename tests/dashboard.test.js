@@ -65,7 +65,7 @@ test('окно задач показывает группы, фильтры, д�
     if (fail) return { ok: false };
     const path = new URL(url).pathname;
     if (path === '/issues.json') return response({ issues, total_count: issues.length });
-    if (path === '/issues/9.json') return response({ issue: { id: 9, subject: 'Родитель', tracker: { name: 'Feature' } } });
+    if (path === '/issues/9.json') return response({ issue: { id: 9, key: 'TMS-9', subject: 'Родитель', tracker: { name: 'Feature' } } });
     if (path === '/issues/1.json') return response({ issue: { ...issues[0], description: '**Жирный** сырой текст', description_html: '<p><strong>Жирный</strong> текст и <code>код</code>, <del>удалён</del></p><table><tr><td>A</td></tr></table><ul><li>пункт</li><li><input type="checkbox" checked disabled> готово</li></ul><p><a href="https://example.com">Ссылка</a> и <a href="javascript:alert(1)">плохо</a> — <a href="/issues/42">#42</a></p><script>alert(1)</script>', journals: [
       { id: 11, user: { name: 'Автор' }, notes: '**Комментарий**', notes_html: '<p><strong>Комментарий</strong> и <a href="/issues/42">#42</a></p><pre><code class="json syntaxhl" data-language="json"><span class="p">{}</span></code></pre><script>alert(1)</script>' },
       { id: 12, user: { name: 'Автор' }, notes: '**Просто** текст' },
@@ -77,7 +77,9 @@ test('окно задач показывает группы, фильтры, д�
     const doc = window.document;
     await waitFor(() => doc.querySelector('tbody tr'));
     await waitFor(() => doc.querySelector('tbody tr').textContent.includes('Родитель'));
+    assert.equal(doc.querySelector('tbody tr td:nth-child(3) a').getAttribute('href'), 'https://redmine.test/issues/TMS-9');
     assert.match(doc.querySelector('tbody tr').textContent, /TMS-1/);
+    assert.equal(doc.querySelector('tbody tr .issue-key').getAttribute('href'), 'https://redmine.test/issues/TMS-1');
     assert.ok(doc.querySelector('tbody tr .issue-type .tracker-tag.tracker-task'));
     assert.equal(calls[0].options.headers['X-Redmine-API-Key'], 'key');
     click(window, doc.querySelector('tbody tr'));
@@ -107,6 +109,8 @@ test('окно задач показывает группы, фильтры, д�
     assert.equal(doc.querySelector('.issue-panel').textContent.includes('alert(1)'), false);
     assert.equal(doc.querySelector('.description-toggle'), null);
     assert.equal(doc.querySelector('.issue-panel-head .tracker-tag').textContent, 'Task');
+    assert.equal(doc.querySelector('.issue-panel-head .issue-key').getAttribute('href'), 'https://redmine.test/issues/TMS-1');
+    assert.equal(doc.querySelector('.panel-action').getAttribute('href'), 'https://redmine.test/issues/TMS-1');
     assert.deepEqual([...doc.querySelectorAll('.issue-badges .chip')].map(chip => chip.textContent), ['Develop', 'High']);
     assert.match(doc.querySelector('.issue-facts').textContent, /Автор/);
     click(window, doc.querySelector('.close'));
