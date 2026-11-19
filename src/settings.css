@@ -26,7 +26,7 @@ body {
 
 h1 { margin: 0 0 14px; font-size: 18px; }
 
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 
 button {
   padding: 8px 13px;
@@ -59,7 +59,7 @@ form {
 .settings-panel { display: grid; gap: 12px; }
 
 label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
-input {
+input, select {
   width: 100%;
   padding: 8px;
   border: 1px solid var(--border-strong);
@@ -71,6 +71,7 @@ input {
 input::placeholder { color: #8591a1; }
 
 button.save-button { justify-self: start; margin-top: 2px; }
+.load-fields { justify-self: start; }
 
 p { margin: 0; }
 .error { color: var(--danger); }

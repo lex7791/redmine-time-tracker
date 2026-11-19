@@ -124,5 +124,23 @@
   },
   "invalidRedmineUrl": {
     "message": "Укажите корректный адрес Redmine."
+  },
+  "estimateSettingsTab": {
+    "message": "Оценка"
+  },
+  "estimateFieldsHint": {
+    "message": "Загрузите поля из назначенных вам задач и выберите поле для оценки в списке задач."
+  },
+  "loadEstimateFields": {
+    "message": "Загрузить поля"
+  },
+  "estimateFieldLabel": {
+    "message": "Поле оценки"
+  },
+  "standardEstimate": {
+    "message": "Общая оценка"
+  },
+  "customFieldId": {
+    "message": "Дополнительное поле #"
   }
 }

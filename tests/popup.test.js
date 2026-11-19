@@ -144,7 +144,7 @@ test('окно настроек сохраняет прежние ключи и 
     click(app.window, app.document.querySelector('.settings-link'));
     await waitFor(() => app.windows.length === 1);
     settingsWindow.chrome = {
-      i18n: app.window.chrome.i18n,
+      i18n: { ...app.window.chrome.i18n, getMessage: key => key.startsWith('estimate') || key === 'loadEstimateFields' || key === 'standardEstimate' ? '' : messages[key]?.message || '' },
       storage: { sync: {
         get: async () => ({ ...app.settings }),
         set: async next => { Object.assign(app.settings, next); app.notify({ redmineUrl: { newValue: next.redmineUrl }, apiKey: { newValue: next.apiKey } }); },
@@ -152,12 +152,14 @@ test('окно настроек сохраняет прежние ключи и 
     };
     settingsWindow.eval(settingsScript);
     await waitFor(() => settingsWindow.document.querySelector('.save-button:not([disabled])'));
+    assert.ok([...settingsWindow.document.querySelectorAll('.settings-tabs button')].some(button => button.textContent === 'Оценка'));
+    assert.equal(settingsWindow.document.querySelector('.load-fields').textContent, 'Загрузить поля');
     const fields = settingsWindow.document.querySelectorAll('input');
     setValue(settingsWindow, fields[0], 'https://redmine.test');
     setValue(settingsWindow, fields[1], 'secret');
     click(settingsWindow, settingsWindow.document.querySelector('.save-button'));
     await waitFor(() => app.document.querySelector('.time-entry'));
-    assert.deepEqual(app.settings, { redmineUrl: 'https://redmine.test', apiKey: 'secret' });
+    assert.deepEqual(app.settings, { redmineUrl: 'https://redmine.test', apiKey: 'secret', estimateField: '' });
     assert.ok(settingsWindow.document.querySelector('[role="status"]'));
     assert.equal(app.document.querySelector('.settings-notice'), null);
   } finally { settingsWindow.close(); app.close(); }
@@ -168,7 +170,7 @@ test('окно настроек показывает сохранённые зн
   const { window } = dom;
   const saved = { redmineUrl: 'https://redmine.test', apiKey: 'existing' };
   let writes = 0;
-  window.chrome = { i18n: { getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => saved, set: async () => { writes++; } } } };
+  window.chrome = { i18n: { getUILanguage: () => 'ru', getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => saved, set: async () => { writes++; } } } };
   try {
     window.eval(settingsScript);
     await waitFor(() => window.document.querySelector('.save-button:not([disabled])'));
@@ -187,7 +189,7 @@ test('вкладки сохраняют данные подключения и �
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { runScripts: 'outside-only' });
   const { window } = dom;
   const stored = { redmineUrl: 'https://redmine.test', apiKey: 'secret', workingStatuses: 'Custom' };
-  window.chrome = { i18n: { getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => ({ ...stored }), set: async values => Object.assign(stored, values) } } };
+  window.chrome = { i18n: { getUILanguage: () => 'ru', getMessage: key => messages[key]?.message || '' }, storage: { sync: { get: async () => ({ ...stored }), set: async values => Object.assign(stored, values) } } };
   try {
     window.eval(settingsScript);
     await waitFor(() => window.document.querySelector('.save-button:not([disabled])'));

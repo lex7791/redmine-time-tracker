@@ -49,6 +49,46 @@ test('группы статусов и повторное использован
   } finally { globalThis.fetch = previous; }
 });
 
+test('выбранная дополнительная оценка отображается и сохраняется в своё поле', async () => {
+  const bundle = await build({ entryPoints: ['src/dashboard.jsx'], bundle: true, write: false, format: 'iife', platform: 'browser', loader: { '.css': 'empty' }, define: { 'process.env.NODE_ENV': '"production"' } });
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'https://extension.test/dashboard.html', runScripts: 'outside-only' });
+  const { window } = dom;
+  const calls = [];
+  window.chrome = { i18n: { getUILanguage: () => 'ru', getMessage: () => 'Ошибка API' }, storage: { sync: { get: async () => ({ ...settings, estimateField: '42' }) }, onChanged: { addListener: () => {}, removeListener: () => {} } } };
+  window.fetch = async (url, options) => {
+    calls.push({ url, options });
+    if (options.method === 'PUT') return { ok: true, status: 204 };
+    if (new URL(url).pathname === '/issues/1.json') return response({ issue: { id: 1, journals: [] } });
+    return response({ issues: [{ id: 1, subject: 'Задача', status: { name: 'Develop' }, estimated_hours: 9, custom_fields: [{ id: 42, name: 'Фронт', value: '2' }] }, { id: 2, subject: 'Без поля', status: { name: 'Develop' } }], total_count: 2 });
+  };
+  try {
+    window.eval(bundle.outputFiles[0].text);
+    const doc = window.document;
+    await waitFor(() => doc.querySelectorAll('tbody tr').length === 2);
+    assert.equal(doc.querySelector('.estimate-button').textContent, '2 ч');
+    assert.equal(doc.querySelectorAll('.estimate-button').length, 1);
+    click(window, doc.querySelector('.estimate-button'));
+    await waitFor(() => doc.querySelector('.estimate-editor input'));
+    const input = doc.querySelector('.estimate-editor input');
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, '4');
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    doc.querySelector('.estimate-editor').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await waitFor(() => doc.querySelector('.estimate-button')?.textContent === '4 ч');
+    assert.deepEqual(JSON.parse(calls.find(call => call.options.method === 'PUT').options.body), { issue: { custom_fields: [{ id: 42, value: '4' }] } });
+    click(window, doc.querySelector('tbody tr'));
+    await waitFor(() => doc.querySelector('.issue-panel .estimate-button'));
+    click(window, doc.querySelector('.issue-panel .estimate-button'));
+    await waitFor(() => doc.querySelector('.issue-panel .estimate-editor input'));
+    const panelInput = doc.querySelector('.issue-panel .estimate-editor input');
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(panelInput, '5');
+    panelInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+    doc.querySelector('.issue-panel .estimate-editor').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await waitFor(() => doc.querySelector('.issue-panel .estimate-button')?.textContent === '5 ч');
+    assert.equal(doc.querySelector('tbody .estimate-button').textContent, '5 ч');
+    assert.deepEqual(JSON.parse(calls.filter(call => call.options.method === 'PUT').at(-1).options.body), { issue: { custom_fields: [{ id: 42, value: '5' }] } });
+  } finally { window.close(); }
+});
+
 test('окно задач показывает группы, фильтры, детали и сохраняет список при ошибке обновления', async () => {
   const bundle = await build({ entryPoints: ['src/dashboard.jsx'], bundle: true, write: false, format: 'iife', platform: 'browser', loader: { '.css': 'empty' }, define: { 'process.env.NODE_ENV': '"production"' } });
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'https://extension.test/dashboard.html', runScripts: 'outside-only' });
@@ -64,6 +104,7 @@ test('окно задач показывает группы, фильтры, д�
     calls.push({ url, options });
     if (fail) return { ok: false };
     const path = new URL(url).pathname;
+    if (options.method === 'PUT') return { ok: true, status: 204 };
     if (path === '/issues.json') return response({ issues, total_count: issues.length });
     if (path === '/issues/9.json') return response({ issue: { id: 9, key: 'TMS-9', subject: 'Родитель', tracker: { name: 'Feature' } } });
     if (path === '/issues/1.json') return response({ issue: { ...issues[0], description: '**Жирный** сырой текст', description_html: '<p><strong>Жирный</strong> текст и <code>код</code>, <del>удалён</del></p><table><tr><td>A</td></tr></table><ul><li>пункт</li><li><input type="checkbox" checked disabled> готово</li></ul><p><a href="https://example.com">Ссылка</a> и <a href="javascript:alert(1)">плохо</a> — <a href="/issues/42">#42</a></p><script>alert(1)</script>', journals: [
@@ -142,10 +183,21 @@ test('окно задач показывает группы, фильтры, д�
     await waitFor(() => doc.querySelector('tbody tr')?.textContent.includes('TMS-2'));
     assert.equal(check.checked, false);
     assert.deepEqual([...filters].map(filter => filter.value), ['', '', '']);
+    click(window, doc.querySelector('.estimate-button'));
+    await waitFor(() => doc.querySelector('.estimate-editor input'));
+    const input = doc.querySelector('.estimate-editor input');
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(input, '3,5');
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    doc.querySelector('.estimate-editor').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await waitFor(() => doc.querySelector('.estimate-button')?.textContent === '3.5 ч');
+    const update = calls.find(call => call.options.method === 'PUT');
+    assert.equal(new URL(update.url).pathname, '/issues/2.json');
+    assert.deepEqual(JSON.parse(update.options.body), { issue: { estimated_hours: 3.5 } });
+    assert.equal(doc.querySelector('.issue-panel'), null);
     fail = true;
     click(window, [...doc.querySelectorAll('.dashboard-header button')].at(-1));
     await waitFor(() => doc.querySelector('[role="alert"]'));
     assert.match(doc.querySelector('tbody tr').textContent, /TMS-2/);
-    assert.equal(calls.every(call => call.options.method === 'GET'), true);
   } finally { window.close(); }
 });

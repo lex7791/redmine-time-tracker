@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { assignedIssues, createIssueLoader, getHierarchy, issueGroup, statusDefaults } from './dashboard-api.js';
 import { trackerColor } from './utils.js';
 import { Markdown } from './markdown.jsx';
+import { request } from './api.js';
 import './dashboard.css';
 
 const ru = chrome.i18n.getUILanguage().startsWith('ru');
@@ -17,6 +18,43 @@ const hoursText = value => `${Number(value || 0).toFixed(Number(value || 0) % 1 
 const unique = values => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 const priorityTone = name => /high|высок/i.test(name || '') ? 'chip-high' : /low|низк/i.test(name || '') ? 'chip-low' : '';
 const statusFields = Object.keys(statusDefaults);
+const estimateValue = (issue, field) => {
+  if (!field) return issue.estimated_hours ?? null;
+  const custom = issue.custom_fields?.find(item => String(item.id) === field);
+  return custom && custom.value !== '' && custom.value != null ? custom.value : null;
+};
+const withEstimate = (issue, field, hours) => !field ? { ...issue, estimated_hours: hours } : { ...issue, custom_fields: issue.custom_fields.map(item => String(item.id) === field ? { ...item, value: hours == null ? '' : String(hours) } : item) };
+
+function EstimateEditor({ issue, settings, onSaved, editing, onStart, onCancel }) {
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const field = settings.estimateField || '';
+  const available = !field || issue.custom_fields?.some(item => String(item.id) === field);
+  const currentValue = estimateValue(issue, field);
+  async function save(event) {
+    event.preventDefault();
+    const normalized = value.trim().replace(',', '.');
+    if (normalized && (!/^\d+(\.\d+)?$/.test(normalized) || !Number.isFinite(Number(normalized)))) {
+      setError(ru ? 'Введите неотрицательное число часов' : 'Enter a non-negative number of hours');
+      return;
+    }
+    setSaving(true); setError('');
+    try {
+      const hours = normalized ? Number(normalized) : null;
+      const update = field ? { custom_fields: [{ id: Number(field), value: hours == null ? '' : String(hours) }] } : { estimated_hours: hours };
+      await request(settings, `issues/${encodeURIComponent(issue.id)}.json`, 'PUT', { issue: update });
+      onSaved(issue.id, hours);
+      onCancel();
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
+  }
+  return !available ? <span title={ru ? 'Поле недоступно для этой задачи' : 'Field is unavailable for this issue'}>—</span> : editing ? <form className="estimate-editor" onSubmit={save} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); if (!saving) onCancel(); } }}>
+    <input autoFocus aria-label={copy.estimate} inputMode="decimal" value={value} disabled={saving} onChange={e => setValue(e.target.value)} />
+    <button type="submit" disabled={saving} aria-label={copy.save} title={copy.save}>✓</button><button type="button" className="secondary" disabled={saving} aria-label={copy.cancel} title={copy.cancel} onClick={onCancel}>×</button>
+    {error && <span className="error" role="alert">{error}</span>}
+  </form> : <button type="button" className="estimate-button" onClick={() => { setValue(currentValue == null ? '' : String(currentValue)); setError(''); onStart(); }}>{currentValue == null ? copy.needsEstimate : hoursText(currentValue)}</button>;
+}
 
 function App() {
   const [settings, setSettings] = useState(null);
@@ -28,6 +66,7 @@ function App() {
   const [priority, setPriority] = useState('');
   const [tracker, setTracker] = useState('');
   const [estimate, setEstimate] = useState(false);
+  const [editingEstimate, setEditingEstimate] = useState(null);
   const [selected, setSelected] = useState(null);
   const [details, setDetails] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -49,7 +88,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const stored = await chrome.storage.sync.get(['apiKey', 'redmineUrl', ...statusFields]);
+      const stored = await chrome.storage.sync.get(['apiKey', 'redmineUrl', 'estimateField', ...statusFields]);
       if (generation !== loadGeneration.current) return;
       const nextSettings = { ...statusDefaults, ...stored };
       setSettings(nextSettings);
@@ -78,7 +117,7 @@ function App() {
 
   useEffect(() => {
     const onChange = (changes, area) => {
-      if (area === 'sync' && ['apiKey', 'redmineUrl', ...statusFields].some(key => changes[key])) load();
+      if (area === 'sync' && ['apiKey', 'redmineUrl', 'estimateField', ...statusFields].some(key => changes[key])) load();
     };
     chrome.storage.onChanged.addListener(onChange);
     load();
@@ -101,7 +140,7 @@ function App() {
 
   async function openIssue(issue) {
     const generation = ++detailGeneration.current;
-    setSelected(issue); setExpanded(false); setDescriptionOverflows(false); setDetailError('');
+    setEditingEstimate(null); setSelected(issue); setExpanded(false); setDescriptionOverflows(false); setDetailError('');
     if (detailCache[issue.id]) { setDetails(detailCache[issue.id]); setDetailLoading(false); return; }
     setDetails(null); setDetailLoading(true);
     try {
@@ -113,14 +152,15 @@ function App() {
     } catch (e) { if (generation === detailGeneration.current) setDetailError(e.message); }
     finally { if (generation === detailGeneration.current) setDetailLoading(false); }
   }
-  function closeIssue() { detailGeneration.current++; setSelected(null); setDetails(null); }
+  function closeIssue() { detailGeneration.current++; setEditingEstimate(null); setSelected(null); setDetails(null); }
   async function openSettings() {
     try { await chrome.windows.create({ url: chrome.runtime.getURL('settings.html'), type: 'popup', width: 540, height: 520 }); }
     catch (e) { setError(e.message); }
   }
   const base = settings?.redmineUrl?.replace(/\/+$/, '') || '';
   const issueUrl = issue => `${base}/issues/${encodeURIComponent(issue.key || issue.id)}`;
-  const filtered = issues.filter(issue => (!project || issue.project?.name === project) && (!priority || issue.priority?.name === priority) && (!tracker || issue.tracker?.name === tracker) && (!estimate || !issue.estimated_hours));
+  const field = settings?.estimateField || '';
+  const filtered = issues.filter(issue => (!project || issue.project?.name === project) && (!priority || issue.priority?.name === priority) && (!tracker || issue.tracker?.name === tracker) && (!estimate || ((!field || issue.custom_fields?.some(item => String(item.id) === field)) && estimateValue(issue, field) == null)));
   const grouped = group => filtered.filter(issue => issueGroup(issue.status?.name, settings || statusDefaults) === group);
   const visible = grouped(view).sort((a, b) => {
     const weight = issue => /high|высок/i.test(issue.priority?.name || '') ? 0 : /low|низк/i.test(issue.priority?.name || '') ? 2 : 1;
@@ -133,6 +173,14 @@ function App() {
     return date && !Number.isNaN(Date.parse(date)) ? Math.max(1, Math.ceil((Date.now() - Date.parse(date)) / 86400000)) : null;
   };
   const section = (label, values, value, setValue, all) => <label>{label}<select value={value} onChange={e => setValue(e.target.value)}><option value="">{all}</option>{values.map(item => <option key={item} value={item}>{item}</option>)}</select></label>;
+  const updateEstimate = (id, hours) => {
+    setIssues(previous => previous.map(issue => issue.id === id ? withEstimate(issue, field, hours) : issue));
+    setSelected(previous => previous?.id === id ? withEstimate(previous, field, hours) : previous);
+  };
+  const estimateEditor = (issue, location) => {
+    const key = `${location}:${issue.id}`;
+    return <EstimateEditor issue={issue} settings={settings} onSaved={updateEstimate} editing={editingEstimate === key} onStart={() => setEditingEstimate(key)} onCancel={() => setEditingEstimate(current => current === key ? null : current)} />;
+  };
 
   return <main className="dashboard">
     <header className="dashboard-header"><h1>{copy.title}</h1><div><button className="secondary" onClick={openSettings}>⚙ {copy.settings}</button> <button onClick={load} disabled={loading}>{copy.refresh}</button></div></header>
@@ -147,7 +195,7 @@ function App() {
     </div>
     <div className="dashboard-table-wrap"><table><thead><tr>{[copy.project, copy.type, copy.parent, copy.issue, copy.priority, copy.status, copy.estimate, copy.spent, ...(view === 'working' ? [copy.days] : []), copy.updated].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{visible.map(issue => <tr key={issue.id} tabIndex="0" onClick={() => openIssue(issue)} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openIssue(issue); } }}>
       <td>{issue.project?.name || '—'}</td><td className="issue-type"><span className={`tracker-tag tracker-${trackerColor(issue.tracker?.name)}`}>{issue.tracker?.name || '—'}</span></td><td>{issue.parent?.id ? <a href={issueUrl(hierarchies[issue.id]?.parent || issue.parent)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{hierarchies[issue.id]?.parent?.subject || `#${issue.parent.id}`}</a> : '—'}</td>
-      <td><a className="issue-key" href={issueUrl(issue)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{issue.key || `#${issue.id}`}</a> {issue.subject}</td><td>{issue.priority?.name || '—'}</td><td>{issue.status?.name || '—'}</td><td>{issue.estimated_hours ? hoursText(issue.estimated_hours) : copy.needsEstimate}</td><td>{hoursText(issue.spent_hours)}</td>{view === 'working' && <td>{daysInWork(issue) ? `${daysInWork(issue)} ${copy.daysShort}` : '—'}</td>}<td>{dateText(issue.updated_on)}</td>
+      <td><a className="issue-key" href={issueUrl(issue)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{issue.key || `#${issue.id}`}</a> {issue.subject}</td><td>{issue.priority?.name || '—'}</td><td>{issue.status?.name || '—'}</td><td onClick={e => e.stopPropagation()}>{estimateEditor(issue, 'list')}</td><td>{hoursText(issue.spent_hours)}</td>{view === 'working' && <td>{daysInWork(issue) ? `${daysInWork(issue)} ${copy.daysShort}` : '—'}</td>}<td>{dateText(issue.updated_on)}</td>
     </tr>)}</tbody></table>{!visible.length && <p className="empty">{configured ? copy.empty : copy.missing}</p>}{configured && !visible.length && issues.length > 0 && <p className="empty">{copy.loadedStatuses}: {unique(issues.map(i => i.status?.name)).join(', ')}</p>}</div>
     {selected && <div className="overlay" onClick={closeIssue}><aside className="issue-panel" role="dialog" aria-modal="true" aria-label={copy.issue} onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === 'Escape') closeIssue(); }}>
       <header className="issue-panel-head">
@@ -170,7 +218,7 @@ function App() {
         <dl className="issue-facts">
           <div><dt>{copy.author}</dt><dd>{details?.author?.name || selected.author?.name || '—'}</dd></div>
           <div><dt>{copy.assignee}</dt><dd>{details?.assigned_to?.name || selected.assigned_to?.name || '—'}</dd></div>
-          <div><dt>{copy.estimate}</dt><dd>{selected.estimated_hours ? hoursText(selected.estimated_hours) : copy.needsEstimate}</dd></div>
+          <div><dt>{copy.estimate}</dt><dd>{estimateEditor(selected, 'panel')}</dd></div>
           <div><dt>{copy.spent}</dt><dd>{hoursText(selected.spent_hours)}</dd></div>
         </dl>
         <section className="issue-section">

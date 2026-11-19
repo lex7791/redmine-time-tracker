@@ -124,5 +124,23 @@
   },
   "invalidRedmineUrl": {
     "message": "Enter a valid Redmine URL."
+  },
+  "estimateSettingsTab": {
+    "message": "Estimate"
+  },
+  "estimateFieldsHint": {
+    "message": "Load fields from your assigned issues and choose the estimate field for the task list."
+  },
+  "loadEstimateFields": {
+    "message": "Load fields"
+  },
+  "estimateFieldLabel": {
+    "message": "Estimate field"
+  },
+  "standardEstimate": {
+    "message": "Standard estimate"
+  },
+  "customFieldId": {
+    "message": "Custom field #"
   }
 }

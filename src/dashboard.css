@@ -97,6 +97,12 @@ tbody tr:last-child td { border-bottom: 0; }
 tbody tr { cursor: pointer; }
 tbody tr:hover, tbody tr:focus { background: var(--hover); }
 tbody tr:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.estimate-button { padding: 0; color: var(--blue); background: transparent; text-align: left; }
+.estimate-button:hover { color: var(--blue-hover); background: transparent; text-decoration: underline; }
+.estimate-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; width: 116px; }
+.estimate-editor input { width: 56px; min-width: 0; padding: 5px; border: 1px solid var(--border-strong); border-radius: 5px; }
+.estimate-editor button { width: 26px; height: 28px; padding: 0; }
+.estimate-editor .error { width: 100%; margin: 0; }
 
 .issue-type { white-space: nowrap; }
 .tracker-tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef1f4; color: #5b6878; }
